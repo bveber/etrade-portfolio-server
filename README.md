@@ -96,3 +96,15 @@ This project uses Jest for unit testing. To run the tests, follow these steps:
     ```
 
 The tests are located in the `tests` directory and cover various functionalities of the application, including OAuth, portfolio data, transactions data, account balances, and 10-K filings.
+
+## Continuous Integration
+
+This project uses GitHub Actions for Continuous Integration. The CI pipeline is configured to run on every pull request targeting the `main` branch. The pipeline performs the following steps:
+
+1. **Checkout Code**: Checks out the code from the repository.
+2. **Set Up Node.js**: Sets up the Node.js environment.
+3. **Install Dependencies**: Installs project dependencies using `npm install`.
+4. **Run ESLint**: Lints the codebase to ensure code quality.
+5. **Run Jest Tests**: Runs the test suite to ensure all tests pass.
+
+To view the workflow configuration, check the [pull_request.yaml](.github/workflows/pull_request.yaml) file.
