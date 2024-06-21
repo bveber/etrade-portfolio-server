@@ -1,8 +1,8 @@
-const axios = require('axios');
-const { getAccountList } = require('../services/getAccountList');
-const { oauth, baseUrl } = require('../services/oauth');
-const cache = require('../services/cache');
-const { handleCustomError } = require('../services/utils');
+import axios from 'axios';
+import { getAccountList } from '../services/getAccountList.js';
+import { oauth, baseUrl } from '../services/oauth.js';
+import cache from '../services/cache.js';
+import handleCustomError from '../services/utils.js';
 
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
@@ -52,6 +52,6 @@ async function getAccountBalances() {
     }
 }
 
-module.exports = {
+export {
     getAccountBalances,
 };

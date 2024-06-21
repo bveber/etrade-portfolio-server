@@ -1,8 +1,8 @@
-const axios = require('axios');
-const xml2js = require('xml2js');
-const { promisify } = require('util');
+import axios from 'axios';
+import { parseString as _parseString } from 'xml2js';
+import { promisify } from 'util';
 
-const parseString = promisify(xml2js.parseString);
+const parseString = promisify(_parseString);
 
 async function get10k(ticker) {
     console.log('Fetching 10-K filing data for:', ticker);
@@ -36,6 +36,6 @@ async function get10k(ticker) {
     }
 }
 
-module.exports = {
+export {
     get10k,
 };

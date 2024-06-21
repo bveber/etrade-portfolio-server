@@ -1,10 +1,10 @@
-const { getPortfolioData } = require('../src/routes/portfolio');
-const cache = require('../src/services/cache');
+import { getPortfolioData } from '../src/routes/portfolio';
+import cache from '../src/services/cache';
 
+import axios from 'axios';
+import { getAccountList } from '../src/services/getAccountList';
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
-const axios = require('axios');
-const { getAccountList } = require('../src/services/getAccountList');
 
 describe('Portfolio Service', () => {
     beforeAll(() => {

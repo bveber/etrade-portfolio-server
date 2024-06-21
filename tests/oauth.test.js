@@ -1,8 +1,8 @@
-const { getRequestToken, getAccessToken } = require('../src/services/oauth');
-const cache = require('../src/services/cache');
+import { getRequestToken, getAccessToken } from '../src/services/oauth';
+import cache from '../src/services/cache';
 
+import axios from 'axios';
 jest.mock('axios');
-const axios = require('axios');
 
 describe('OAuth Service', () => {
     afterEach(() => {
