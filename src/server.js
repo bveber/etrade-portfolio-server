@@ -1,12 +1,20 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const { getRequestToken, getAccessToken, consumerKey } = require('./services/oauth');
-const { getPortfolioData } = require('./routes/portfolio');
-const { getTransactionsData } = require('./routes/transactions');
-const { getAccountBalances } = require('./routes/accountBalances');
-const { get10k } = require('./routes/edgar');
-const cache = require('./services/cache');
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { 
+    getRequestToken, 
+    getAccessToken, 
+    consumerKey,
+} from './services/oauth.js';
+import cache from './services/cache.js';
+import { getPortfolioData } from './routes/portfolio.js';
+import { getTransactionsData } from './routes/transactions.js';
+import { getAccountBalances } from './routes/accountBalances.js';
+import { get10k } from './routes/edgar.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = 3000;

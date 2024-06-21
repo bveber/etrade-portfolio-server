@@ -1,7 +1,7 @@
-const axios = require('axios');
-const { oauth, baseUrl } = require('./oauth');
-const cache = require('./cache');
-const { handleCustomError } = require('./utils');
+import axios from 'axios';
+import { oauth, baseUrl } from './oauth.js';
+import cache from './cache.js';
+import handleCustomError from './utils.js';
 
 async function getAccountList() {
     if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
@@ -24,6 +24,6 @@ async function getAccountList() {
     }
 }
 
-module.exports = {
+export {
     getAccountList,
 };

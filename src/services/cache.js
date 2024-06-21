@@ -7,4 +7,4 @@ const cache = {
   accessTokenExpiryTime: null,
 };
 
-module.exports = cache;
+export default cache;

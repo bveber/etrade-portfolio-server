@@ -1,9 +1,11 @@
-const axios = require('axios');
-const OAuth = require('oauth-1.0a');
-const crypto = require('crypto');
-const moment = require('moment-timezone');
-const cache = require('./cache');
-require('dotenv').config();
+import axios from 'axios';
+import OAuth from 'oauth-1.0a';
+import crypto from 'crypto';
+import moment from 'moment-timezone';
+import cache from './cache.js';
+import { config } from 'dotenv';
+
+config();
 
 const consumerKey = process.env.ETRADE_CONSUMER_KEY;
 const consumerSecret = process.env.ETRADE_CONSUMER_SECRET;
@@ -94,10 +96,10 @@ async function getAccessToken(requestToken, requestTokenSecret, verifier) {
     }
 }
 
-module.exports = {
-    getRequestToken,
-    getAccessToken,
-    oauth,
-    consumerKey,
-    baseUrl,
+export {
+  getRequestToken,
+  getAccessToken,
+  oauth,
+  consumerKey,
+  baseUrl,
 };

@@ -1,8 +1,8 @@
-const axios = require('axios');
-const { getAccountList } = require('../services/getAccountList');
-const { oauth, baseUrl } = require('../services/oauth');
-const cache = require('../services/cache');
-const { handleCustomError } = require('../services/utils');
+import axios from 'axios';
+import { getAccountList } from '../services/getAccountList.js';
+import { oauth, baseUrl } from '../services/oauth.js';
+import cache from '../services/cache.js';
+import handleCustomError from '../services/utils.js';
 
 async function getAccountPortfolio(accountIdKey) {
     const requestData = {
@@ -49,6 +49,6 @@ async function getPortfolioData() {
     }
 }
 
-module.exports = {
+export {
     getPortfolioData,
 };

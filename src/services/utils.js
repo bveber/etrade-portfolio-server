@@ -12,6 +12,4 @@ function handleCustomError(error) {
     throw new Error(`Error retrieving data: ${error.message}`);
 }
 
-module.exports = {
-    handleCustomError,
-  };
+export default handleCustomError;
