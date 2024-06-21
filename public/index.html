@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etrade Portfolio Homepage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="text"] {
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>OAuth Authorization</h1>
+    <div id="authorize-section" class="section">
+        <button id="authorize-button">Get Authorization URL</button>
+        <div id="authorize-url"></div>
+    </div>
+    <div id="callback-section" class="section">
+        <h2>Callback</h2>
+        <form id="callback-form">
+            <label for="oauth-verifier">OAuth Verifier:</label>
+            <input type="text" id="oauth-verifier" name="oauth-verifier" required>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <div id="data-section" class="section">
+        <h2>Account Data</h2>
+        <button id="account-balances-button">Get Account Balances</button>
+        <div id="account-balances-data"></div>
+        <h2>Portfolio Data</h2>
+        <button id="portfolio-button">Get Portfolio Data</button>
+        <div id="portfolio-data"></div>
+        <h2>Transactions Data</h2>
+        <button id="transactions-button">Get Transactions Data</button>
+        <div id="transactions-data"></div>
+    </div>
+
+    <script>
+        async function fetchAndDisplayData(url, title) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+                const data = await response.json();
+                const newWindow = window.open();
+                newWindow.document.write(`<h1>${title}</h1><pre>${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (error) {
+                alert(`Failed to fetch ${title.toLowerCase()}: ${error.message}`);
+            }
+        }
+
+        document.getElementById('authorize-button').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/authorize');
+                if (!response.ok) {
+                    throw new Error('Failed to get authorization URL.');
+                }
+                const data = await response.text();
+                document.getElementById('authorize-url').innerHTML = data;
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('callback-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const verifier = document.getElementById('oauth-verifier').value;
+            try {
+                const response = await fetch(`/callback?oauth_verifier=${verifier}`);
+                if (!response.ok) {
+                    throw new Error('Failed to submit OAuth verifier.');
+                }
+                const data = await response.text();
+                alert(data);
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('account-balances-button').addEventListener('click', () => {
+            const url = '/accountBalances';
+            const newWindow = window.open(url, '_blank');
+            newWindow.focus();
+        });
+
+        document.getElementById('portfolio-button').addEventListener('click', () => {
+            fetchAndDisplayData('/portfolio', 'Portfolio Data');
+        });
+
+        document.getElementById('transactions-button').addEventListener('click', () => {
+            fetchAndDisplayData('/transactions', 'Transactions Data');
+        });
+    </script>
+</body>
+</html>

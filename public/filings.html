@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10-K Filings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"] {
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #filing-data {
+            margin-top: 20px;
+        }
+        .filing-container {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .filing-container span,
+        .filing-container a {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Get 10-K Filing Data</h1>
+    <form id="ticker-form">
+        <label for="ticker">Stock Ticker:</label>
+        <input type="text" id="ticker" name="ticker" required>
+        <button type="submit">Get 10-K Data</button>
+    </form>
+    <div id="error-message" class="error"></div>
+    <div id="filing-data"></div>
+
+    <script>
+        document.getElementById('ticker-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const ticker = document.getElementById('ticker').value;
+            const filingDataDiv = document.getElementById('filing-data');
+            const errorMessageDiv = document.getElementById('error-message');
+
+            // Clear previous results and error messages
+            filingDataDiv.innerHTML = '';
+            errorMessageDiv.textContent = '';
+
+            try {
+                const response = await fetch(`/get10k?ticker=${ticker}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                const data = await response.json();
+                data.forEach(filing => {
+                    const container = document.createElement('div');
+                    container.className = 'filing-container';
+
+                    const title = document.createElement('span');
+                    title.textContent = `Title: ${filing.title}`;
+
+                    const date = document.createElement('span');
+                    date.textContent = `Filed on: ${filing.filingDate}`;
+
+                    const link = document.createElement('a');
+                    link.href = filing.xbrl_url;
+                    link.textContent = 'Link to interactive 10-K filing data';
+                    link.target = '_blank';
+
+                    const link2 = document.createElement('a');
+                    link2.href = filing.url;
+                    link2.textContent = 'Link to 10-K filing page';
+                    link2.target = '_blank';
+
+                    container.appendChild(title);
+                    container.appendChild(date);
+                    container.appendChild(link);
+                    container.appendChild(link2);
+
+                    filingDataDiv.appendChild(container);
+                });
+            } catch (error) {
+                errorMessageDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

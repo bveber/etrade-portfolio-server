@@ -1,118 +1,76 @@
 const express = require('express');
-const axios = require('axios');
-const OAuth = require('oauth-1.0a');
-const crypto = require('crypto');
+const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
+const { 
+    getRequestToken, 
+    getAccessToken, 
+    consumerKey,
+
+} = require('./oauth');
+const { getPortfolioData } = require('./portfolio');
+const { getTransactionsData } = require('./transactions');
+const { getAccountBalances } = require('./accountBalances');
+const { get10k } = require('./edgar');
+const cache = require('./cache');
 
 const app = express();
 const port = 3000;
 
-// Load E-Trade API credentials from environment variables
-const consumerKey = process.env.CONSUMER_KEY;
-const consumerSecret = process.env.CONSUMER_SECRET;
+// Serve the static HTML file
+app.use(express.static(path.join(__dirname, 'public')));
 
-const baseUrl = 'https://api.etrade.com';
-
-const oauth = OAuth({
-  consumer: { key: consumerKey, secret: consumerSecret },
-  signature_method: 'HMAC-SHA1',
-  hash_function(base_string, key) {
-    return crypto.createHmac('sha1', key).update(base_string).digest('base64');
-  },
-  callback: 'oob'  // Add this line to specify the out-of-band callback
-});
-
-// Cache variables
-let cachedToken = null;
-let cachedTokenSecret = null;
-let cacheExpiryTime = null;
-
-// Function to get request token
-async function getRequestToken() {
-    const requestData = {
-      url: `${baseUrl}/oauth/request_token`,
-      method: 'POST',
-      data: { oauth_callback: 'oob' }
-    };
-  
-    const headers = oauth.toHeader(oauth.authorize(requestData));
-  
-    console.log('Request Data:', requestData);
-    console.log('OAuth Headers:', headers);
-  
+// Endpoint to start the authorization process
+app.get('/authorize', async (req, res) => {
     try {
-      const response = await axios.post(requestData.url, {}, { headers });
-      const responseData = new URLSearchParams(response.data);
-  
-      const oauth_token = responseData.get('oauth_token');
-      const oauth_secret = responseData.get('oauth_token_secret');
-    //   cacheExpiryTime = Date.now() + 1 * 60 * 1000; // Cache for 1 minute
-  
-      console.log('Request Token:', oauth_token);
-      console.log('Request Token Secret:', oauth_secret);
-  
-      // Invalidate the cache after 1 minute
-    //   setTimeout(() => {
-    //     cachedToken = null;
-    //     cachedTokenSecret = null;
-    //     cacheExpiryTime = null;
-    //   }, 1 * 60 * 1000);
-  
-      return {
-        oauth_token: oauth_token,
-        oauth_token_secret: oauth_secret
-      };
+      const { oauth_token } = await getRequestToken();
+      const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${consumerKey}&token=${oauth_token}`;
+      res.send(`<a href="${authorizeUrl}" target="_blank">Please authorize your application by clicking here</a>`);
     } catch (error) {
-      console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
-      throw error;
+      res.status(500).send(error.message);
     }
-  }
+  });
+  
+  // Endpoint to handle the verifier and get the access token
+  app.get('/callback', async (req, res) => {
+      if (!cache.requestToken || !cache.requestTokenSecret || Date.now() > cache.requestTokenExpiryTime) {
+          await getRequestToken();
+      }
+      const oauth_verifier = req.query['oauth_verifier'];
+      try {
+          await getAccessToken(cache.requestToken, cache.requestTokenSecret, oauth_verifier);
+  
+          res.send(`Access Token obtained successfully. You can now use the API.`);
+      } catch (error) {
+      res.status(500).send(error.message);
+      }
+  });
 
-// Function to get portfolio data
-async function getPortfolioData() {
-  if (!cachedToken || !cachedTokenSecret || Date.now() > cacheExpiryTime) {
-      await getRequestToken();
-  }
-
-  const requestData = {
-    url: `${baseUrl}/v1/accounts/list`,
-    method: 'GET'
-  };
-
-  const token = {
-    key: cachedToken,
-    secret: cachedTokenSecret
-  };
-
-//   const headers = oauth.toHeader(oauth.authorize(requestData, token));
-
-  console.log('Request Data:', requestData);
-  console.log('OAuth Headers:', headers);
-
-  try {
-    const response = await axios.get(requestData.url, { headers });
-    console.log('Portfolio Data Response:', response.data);
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      console.error('Error Response Data:', error.response.data);
-      console.error('Error Response Status:', error.response.status);
-      console.error('Error Response Headers:', error.response.headers);
-    } else if (error.request) {
-      console.error('Error Request:', error.request);
+// Endpoint to request portfolio data
+app.get('/accountBalances', async (req, res) => {
+    try {
+      const data = await getAccountBalances();
+      fs.writeFileSync('data/accountBalances.json', JSON.stringify(data, null, 2));
+      res.json(data);
+    } catch (error) {
+      res.status(500).send(error.message);
+    }
+  });
+  
+  // Endpoint to retrieve persisted portfolio data
+  app.get('/accountBalances/local', (req, res) => {
+    if (fs.existsSync('data/accountBalances.json')) {
+      const data = fs.readFileSync('data/accountBalances.json');
+      res.json(JSON.parse(data));
     } else {
-      console.error('Error Message:', error.message);
+      res.status(404).send('No local portfolio data found');
     }
-    throw new Error(`Error retrieving portfolio data: ${error.message}`);
-  }
-}
+  });
 
 // Endpoint to request portfolio data
 app.get('/portfolio', async (req, res) => {
   try {
     const data = await getPortfolioData();
-    fs.writeFileSync('portfolio.json', JSON.stringify(data, null, 2));
+    fs.writeFileSync('data/portfolio.json', JSON.stringify(data, null, 2));
     res.json(data);
   } catch (error) {
     res.status(500).send(error.message);
@@ -121,24 +79,52 @@ app.get('/portfolio', async (req, res) => {
 
 // Endpoint to retrieve persisted portfolio data
 app.get('/portfolio/local', (req, res) => {
-  if (fs.existsSync('portfolio.json')) {
-    const data = fs.readFileSync('portfolio.json');
+  if (fs.existsSync('data/portfolio.json')) {
+    const data = fs.readFileSync('data/portfolio.json');
     res.json(JSON.parse(data));
   } else {
     res.status(404).send('No local portfolio data found');
   }
 });
 
-// Endpoint to authorize the app
-app.get('/authorize', async (req, res) => {
-    try {
-      const { oauth_token, oauth_token_secret } = await getRequestToken();
-      const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${oauth_token}&token=${oauth_token_secret}`;
-      res.send(`Please authorize your application by visiting this URL: <a href="${authorizeUrl}">${authorizeUrl}</a>`);
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
+// Endpoint to request transactions data
+app.get('/transactions', async (req, res) => {
+  try {
+    const data = await getTransactionsData();
+    fs.writeFileSync('data/transactions.json', JSON.stringify(data, null, 2));
+    res.json(data);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
+
+// Endpoint to retrieve persisted transactions data
+app.get('/transactions/local', (req, res) => {
+  if (fs.existsSync('data/transactions.json')) {
+    const data = fs.readFileSync('data/transactions.json');
+    res.json(JSON.parse(data));
+  } else {
+    res.status(404).send('No local transactions data found');
+  }
+});
+
+// Serve the filings HTML page
+app.get('/filings', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'filings.html'));
+  });
+
+// Endpoint to get 10-K filing data
+app.get('/get10k', async (req, res) => {
+    const { ticker } = req.query;
+  
+    try {
+      const filings = await get10k(ticker);
+      res.json(filings);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);
