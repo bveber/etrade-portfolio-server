@@ -119,11 +119,15 @@
         });
 
         document.getElementById('portfolio-button').addEventListener('click', () => {
-            fetchAndDisplayData('/portfolio', 'Portfolio Data');
+            const url = '/portfolio';
+            const newWindow = window.open(url, '_blank');
+            newWindow.focus();
         });
 
         document.getElementById('transactions-button').addEventListener('click', () => {
-            fetchAndDisplayData('/transactions', 'Transactions Data');
+            const url = '/transactions';
+            const newWindow = window.open(url, '_blank');
+            newWindow.focus();
         });
     </script>
 </body>
