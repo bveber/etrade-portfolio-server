@@ -80,3 +80,19 @@ etrade-portfolio-server/
 ├── package.json
 └── README.md
 ```
+
+## Running Tests
+
+This project uses Jest for unit testing. To run the tests, follow these steps:
+
+1. Install the dependencies (if you haven't already):
+    ```bash
+    npm install
+    ```
+
+2. Run the tests:
+    ```bash
+    npm test
+    ```
+
+The tests are located in the `tests` directory and cover various functionalities of the application, including OAuth, portfolio data, transactions data, account balances, and 10-K filings.
