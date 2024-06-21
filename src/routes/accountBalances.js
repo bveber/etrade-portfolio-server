@@ -1,7 +1,7 @@
-const { getAccountList } = require('./accounts');
-const { oauth, baseUrl } = require('./oauth');
-const cache = require('./cache');
-const { handleCustomError } = require('./utils');
+const { getAccountList } = require('../services/accounts');
+const { oauth, baseUrl } = require('../services/oauth');
+const cache = require('../services/cache');
+const { handleCustomError } = require('../services/utils');
 const axios = require('axios');
 
 // Function to get account balance

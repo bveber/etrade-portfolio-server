@@ -1,18 +1,18 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { getRequestToken, getAccessToken, consumerKey } = require('./oauth');
-const { getPortfolioData } = require('./portfolio');
-const { getTransactionsData } = require('./transactions');
-const { getAccountBalances } = require('./accountBalances');
-const { get10k } = require('./edgar');
-const cache = require('./cache');
+const { getRequestToken, getAccessToken, consumerKey } = require('./services/oauth');
+const { getPortfolioData } = require('./routes/portfolio');
+const { getTransactionsData } = require('./routes/transactions');
+const { getAccountBalances } = require('./routes/accountBalances');
+const { get10k } = require('./routes/edgar');
+const cache = require('./services/cache');
 
 const app = express();
 const port = 3000;
 
 // Serve the static HTML file
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Endpoint to start the authorization process
 app.get('/authorize', async (req, res) => {
