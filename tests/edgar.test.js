@@ -1,7 +1,8 @@
-const { get10k } = require('../src/routes/edgar');
+import { get10k } from '../src/routes/edgar';
 
+import axios from 'axios';
 jest.mock('axios');
-const axios = require('axios');
+
 
 describe('EDGAR Service', () => {
     afterEach(() => {

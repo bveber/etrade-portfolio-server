@@ -1,10 +1,12 @@
-const { getTransactionsData } = require('../src/routes/transactions');
-const cache = require('../src/services/cache');
+import { getTransactionsData } from '../src/routes/transactions';
+import cache from '../src/services/cache';
 
+
+import axios from 'axios';
+import { getAccountList } from '../src/services/getAccountList';
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
-const axios = require('axios');
-const { getAccountList } = require('../src/services/getAccountList');
+
 
 describe('Transactions Service', () => {
     beforeAll(() => {
