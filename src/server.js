@@ -104,7 +104,7 @@ app.get('/transactions/local', (req, res) => {
 
 // Serve the filings HTML page
 app.get('/filings', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'filings.html'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'filings.html'));
 });
 
 // Endpoint to get 10-K filing data

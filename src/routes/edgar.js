@@ -32,7 +32,7 @@ async function get10k(ticker) {
         return filings;
     } catch (error) {
         console.error('Error fetching or parsing 10-K filings:', error.message);
-        throw new Error('Error fetching or parsing 10-K filings. Double check the Stock Ticker.');
+        throw new Error('Error fetching or parsing 10-K filings. Double-check the stock ticker.');
     }
 }
 

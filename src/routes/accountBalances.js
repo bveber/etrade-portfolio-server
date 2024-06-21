@@ -1,27 +1,27 @@
-const { getAccountList } = require('../services/accounts');
+const axios = require('axios');
+const { getAccountList } = require('../services/getAccountList');
 const { oauth, baseUrl } = require('../services/oauth');
 const cache = require('../services/cache');
 const { handleCustomError } = require('../services/utils');
-const axios = require('axios');
 
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
     const requestData = {
-      url: `${baseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
-      method: 'GET',
+        url: `${baseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
+        method: 'GET',
     };
-  
+
     const token = { key: cache.accessToken, secret: cache.accessTokenSecret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
     try {
-      const response = await axios.get(requestData.url, { headers });
-      return response.data;
+        const response = await axios.get(requestData.url, { headers });
+        return response.data;
     } catch (error) {
         handleCustomError(error);
     }
 }
-  
+
 // Function to get account balances
 async function getAccountBalances() {
     if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
@@ -30,21 +30,20 @@ async function getAccountBalances() {
 
     try {
         const accountList = await getAccountList();
-        const accounts = accountList;
 
-        if (!accounts) {
-        throw new Error('No accounts found.');
+        if (!accountList) {
+            throw new Error('No accounts found.');
         }
 
         const accountBalances = await Promise.all(
-        accounts.map(async (account) => {
-            const balance = await getAccountBalance(account.accountIdKey, account.institutionType);
-            return {
-            accountId: account.accountId,
-            accountName: account.accountName,
-            balance,
-            };
-        })
+            accountList.map(async (account) => {
+                const balance = await getAccountBalance(account.accountIdKey, account.institutionType);
+                return {
+                    accountId: account.accountId,
+                    accountName: account.accountName,
+                    balance,
+                };
+            })
         );
 
         return accountBalances;
@@ -55,4 +54,4 @@ async function getAccountBalances() {
 
 module.exports = {
     getAccountBalances,
-  };
+};
