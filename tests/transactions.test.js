@@ -27,4 +27,24 @@ describe('Transactions Service', () => {
 
         expect(result).toEqual([{ accountId: '123', accountName: 'Test Account', transactions: 'transactions data' }]);
     });
+
+    test('should throw error if no accounts found', async () => {
+        getAccountList.mockResolvedValue(null);
+
+        await expect(getTransactionsData()).rejects.toThrow('No accounts found.');
+    });
+
+    test('should throw error if getAccountList throws error', async () => {
+        getAccountList.mockRejectedValue(new Error('Test Error'));
+
+        await expect(getTransactionsData()).rejects.toThrow('Test Error');
+    });
+
+    test('should throw error if getAccountTransactions throws error', async () => {
+        getAccountList.mockResolvedValue([{ accountIdKey: '123', accountName: 'Test Account' }]);
+        axios.get.mockRejectedValue(new Error('Test Error'));
+
+        await expect(getTransactionsData()).rejects.toThrow('Test Error');
+    });
+
 });

@@ -108,3 +108,7 @@ This project uses GitHub Actions for Continuous Integration. The CI pipeline is 
 5. **Run Jest Tests**: Runs the test suite to ensure all tests pass.
 
 To view the workflow configuration, check the [pull_request.yaml](.github/workflows/pull_request.yaml) file.
+
+## License
+
+This project is licensed under the MIT License.

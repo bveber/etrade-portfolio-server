@@ -45,6 +45,9 @@ async function getRequestToken() {
     try {
         const response = await axios.post(requestData.url, {}, { headers });
         const responseData = new URLSearchParams(response.data);
+        if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
+            throw new Error('Failed to get request token');
+        }
         const oauth_token = responseData.get('oauth_token');
         const oauth_token_secret = responseData.get('oauth_token_secret');
 
@@ -63,6 +66,15 @@ async function getRequestToken() {
 
 // Function to get access token
 async function getAccessToken(requestToken, requestTokenSecret, verifier) {
+    if (!requestToken ) {
+        throw new Error('Request token is missing');
+    }
+    if (!requestTokenSecret) {
+        throw new Error('Request token secret is missing');
+    }
+    if (!verifier) {
+        throw new Error('Verifier is missing');
+    }
     if (cache.accessToken && Date.now() < cache.accessTokenExpiryTime) {
         console.log('Using cached access token');
         return {
@@ -85,6 +97,9 @@ async function getAccessToken(requestToken, requestTokenSecret, verifier) {
     try {
         const response = await axios.post(requestData.url, {}, { headers });
         const responseData = new URLSearchParams(response.data);
+        if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
+            throw new Error('Failed to get access token');
+        }
         cache.accessToken = responseData.get('oauth_token');
         cache.accessTokenSecret = responseData.get('oauth_token_secret');
         cache.accessTokenExpiryTime = getEndOfDayEasternTime();
