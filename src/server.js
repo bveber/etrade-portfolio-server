@@ -8,7 +8,7 @@ import {
     consumerKey,
 } from './services/oauth.js';
 import cache from './services/cache.js';
-import { getPortfolioData } from './routes/portfolio.js';
+import { getPortfolioData, flattenPortfolioData } from './routes/portfolio.js';
 import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
@@ -47,7 +47,12 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// Endpoint to request account balances data
+// Serve the accountBalances.html page
+app.get('/accountBalancesPage', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'accountBalances.html'));
+});
+
+// Endpoint to request account balances
 app.get('/accountBalances', async (req, res) => {
     try {
         const data = await getAccountBalances();
@@ -57,6 +62,16 @@ app.get('/accountBalances', async (req, res) => {
         res.status(500).send(error.message);
     }
 });
+
+// app.get('/accountBalances', async (req, res) => {
+//     try {
+//         const data = await getAccountBalances();
+//         fs.writeFileSync('data/accountBalances.json', JSON.stringify(data, null, 2));
+//         res.json(data);
+//     } catch (error) {
+//         res.status(500).send(error.message);
+//     }
+// });
 
 // Endpoint to retrieve persisted account balances data
 app.get('/accountBalances/local', (req, res) => {
@@ -86,6 +101,35 @@ app.get('/portfolio/local', (req, res) => {
         res.json(JSON.parse(data));
     } else {
         res.status(404).send('No local portfolio data found');
+    }
+});
+
+// Serve the portfolio.html page
+app.get('/portfolioPage', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'portfolio.html'));
+});
+
+// Endpoint to request portfolio data
+app.get('/portfolioFlattened', async (req, res) => {
+    try {
+        console.log('Reading portfolio data');
+        const portfolio = await getPortfolioData();
+        // const portfolio = JSON.parse(fs.readFileSync('data/portfolio.json'));
+        const data = await flattenPortfolioData(portfolio);
+        fs.writeFileSync('data/portfolioFlattened.json', JSON.stringify(data, null, 2));
+        res.json(data);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+// Endpoint to retrieve persisted portfolio data
+app.get('/portfolioFlattened/local', (req, res) => {
+    if (fs.existsSync('data/portfolioFlattened.json')) {
+        const data = fs.readFileSync('data/portfolioFlattened.json');
+        res.json(JSON.parse(data));
+    } else {
+        res.status(404).send('No local portfolioFlattened data found');
     }
 });
 

@@ -49,6 +49,34 @@ async function getPortfolioData() {
     }
 }
 
+async function flattenPortfolioData(portfolios) {
+    let all_positions = [];
+    const flattenedPortfolio = portfolios.reduce((result, portfolio) => {
+        const { accountId, accountName, portfolio: portfolioData } = portfolio;
+        const flattenedPositions = portfolioData.PortfolioResponse.AccountPortfolio[0].Position.reduce((positions, position) => {
+            const existingPosition = all_positions.find(p => p.symbol === position.symbolDescription);
+            if (existingPosition) {
+                existingPosition.accountIds.push(accountId);
+                existingPosition.accountNames.push(accountName);
+                existingPosition.quantity += position.quantity;
+                existingPosition.marketValue += position.marketValue;
+            } else {
+                all_positions.push({
+                    accountIds: [accountId],
+                    accountNames: [accountName],
+                    symbol: position.symbolDescription,
+                    quantity: position.quantity,
+                    price: position.Quick.lastTrade,
+                    marketValue: position.marketValue,
+                });
+            }
+        }, []);
+    }, []);
+    all_positions.sort((a, b) => b.marketValue - a.marketValue);
+    return all_positions;
+}
+
 export {
     getPortfolioData,
+    flattenPortfolioData,
 };
