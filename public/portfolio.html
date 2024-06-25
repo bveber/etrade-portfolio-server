@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
 <body>
     <canvas id="portfolioChart" width="400" height="200"></canvas>
@@ -27,6 +28,7 @@
         }
     </style>
     <script>
+        
         // Function to generate a reproducible color from a string
         function stringToColor(str) {
             let hash = 0;
@@ -82,6 +84,21 @@
                     responsive: true,
                     maintainAspectRatio: false, // Allow manual control of dimensions
                     plugins: {
+                        // outerLabels: {
+                        //     fontNormalSize: 12,
+                        //     fontNormalFamily: 'sans-serif',
+                        // },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    const dataset = tooltipItem.dataset;
+                                    const total = dataset.data.reduce((a, b) => a + b, 0);
+                                    const currentValue = dataset.data[tooltipItem.dataIndex].toFixed(0);
+                                    const percentage = ((currentValue / total) * 100).toFixed(2);
+                                    return `${tooltipItem.label}: $${currentValue.toLocaleString()} (${percentage}%)`;
+                                }
+                            }
+                        },
                         legend: {
                             display: false // This line removes the legend
                         },

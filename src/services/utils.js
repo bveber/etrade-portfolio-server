@@ -9,7 +9,7 @@ function handleCustomError(error) {
     } else {
         console.error('Error Message:', error.message);
     }
-    throw new Error(`Error retrieving data: ${error.message}`);
+    throw new Error(error.message);
 }
 
 export default handleCustomError;
