@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <canvas id="portfolioChart" width="400" height="200"></canvas>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #chart-container {
+            width: 400px;
+            height: 400px;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+    <script>
+        // Function to generate a reproducible color from a string
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            let color = '#';
+            for (let i = 0; i < 3; i++) {
+                const value = (hash >> (i * 8)) & 0xFF;
+                color += ('00' + value.toString(16)).substr(-1);
+            }
+            return color;
+        }
+        // Function to generate random colors
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Function to fetch portfolio data
+        async function fetchPortfolioFlattened() {
+            const response = await fetch('/portfolioFlattened');
+            return await response.json();
+        }
+
+        // Function to create chart
+        function createChart(data) {
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+
+            const labels = data.map(stock => stock.symbol);
+            const marketValue = data.map(stock => stock.marketValue);
+            const backgroundColors = data.map(stock => stringToColor(stock.symbol));
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Market Value',
+                            data: marketValue,
+                            backgroundColor: backgroundColors,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allow manual control of dimensions
+                    plugins: {
+                        legend: {
+                            display: false // This line removes the legend
+                        },
+                        title: {
+                            display: true,
+                            text: 'Asset Allocation'
+                        }
+                    }
+                },
+            });
+        }
+
+        async function init() {
+            const portfolioFlattened = await fetchPortfolioFlattened();
+            createChart(portfolioFlattened);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

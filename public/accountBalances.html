@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Balances Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Account Balances</h1>
+    <canvas id="accountBalancesChart" width="400" height="200"></canvas>
+
+    <script>
+        async function fetchAccountBalances() {
+            const response = await fetch('/accountBalances');
+            return await response.json();
+        }
+
+        function createChart(data) {
+            const ctx = document.getElementById('accountBalancesChart').getContext('2d');
+
+            const labels = data.map(account => account.accountName);
+            const totalAccountValues = data.map(account => account.balance.BalanceResponse.Computed.RealTimeValues.totalAccountValue);
+            const cashAvailable = data.map(account => account.balance.BalanceResponse.Computed.cashAvailableForInvestment);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Account Value',
+                            data: totalAccountValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Cash Available for Investment',
+                            data: cashAvailable,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Account Balances'
+                        }
+                    }
+                }
+            });
+        }
+
+        async function init() {
+            const accountBalances = await fetchAccountBalances();
+            createChart(accountBalances);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
