@@ -115,10 +115,12 @@ This project is licensed under the MIT License.
 
 ## TODO
 
+- [x] Redis caching
 - Add ability to drill down into stocks
-    - Get filings
+    - [x] Get company profile
+    - [x] Get filings
     - Get price history
     - Get news
-    - Get Fundamentals
+    - [x] Get Fundamentals
 - Get overall performace over time (compared to indices)
 - Create different slices of the portfolio doughnut chart by sector, industry, equity type, etc.
