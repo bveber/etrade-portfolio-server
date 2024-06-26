@@ -1,17 +1,18 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl } from '../services/oauth.js';
+import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
 import cache from '../services/cache.js';
-import handleCustomError from '../services/utils.js';
+import handleCustomError from '../services/errorHandler.js';
 
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
+    const token = await getAccessTokenCache();
+    console.log("getAccountBalance token:", token)
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
         method: 'GET',
     };
 
-    const token = { key: cache.accessToken, secret: cache.accessTokenSecret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
     try {
@@ -24,9 +25,6 @@ async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
 
 // Function to get account balances
 async function getAccountBalances() {
-    if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
-        throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
-    }
 
     try {
         const accountList = await getAccountList();

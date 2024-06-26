@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
 import { oauth, baseUrl } from '../services/oauth.js';
 import cache from '../services/cache.js';
-import handleCustomError from '../services/utils.js';
+import handleCustomError from '../services/errorHandler.js';
 
 async function getAccountTransactions(accountIdKey) {
     const requestData = {

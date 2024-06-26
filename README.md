@@ -112,3 +112,13 @@ To view the workflow configuration, check the [pull_request.yaml](.github/workfl
 ## License
 
 This project is licensed under the MIT License.
+
+## TODO
+
+- Add ability to drill down into stocks
+    - Get filings
+    - Get price history
+    - Get news
+    - Get Fundamentals
+- Get overall performace over time (compared to indices)
+- Create different slices of the portfolio doughnut chart by sector, industry, equity type, etc.

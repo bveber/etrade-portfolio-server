@@ -1,16 +1,19 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl } from '../services/oauth.js';
+import { oauth, baseUrl, decrypt, getAccessTokenCache } from '../services/oauth.js';
 import cache from '../services/cache.js';
-import handleCustomError from '../services/utils.js';
+import handleCustomError from '../services/errorHandler.js';
+import RedisCache from '../services/redis.js';
 
-async function getAccountPortfolio(accountIdKey) {
+const redisClient = new RedisCache();
+
+async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/portfolio`,
         method: 'GET',
     };
 
-    const token = { key: cache.accessToken, secret: cache.accessTokenSecret };
+    const token = { key: accessToken, secret: accessTokenSecret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
     try {
@@ -22,11 +25,8 @@ async function getAccountPortfolio(accountIdKey) {
 }
 
 async function getPortfolioData() {
-    if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
-        throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
-    }
-
     try {
+        const token = await getAccessTokenCache();
         const accountList = await getAccountList();
         if (!accountList) {
             throw new Error('No accounts found.');
@@ -34,7 +34,7 @@ async function getPortfolioData() {
 
         const accountPortfolios = await Promise.all(
             accountList.map(async (account) => {
-                const portfolio = await getAccountPortfolio(account.accountIdKey);
+                const portfolio = await getAccountPortfolio(account.accountIdKey, token.key, token.secret);
                 return {
                     accountId: account.accountIdKey,
                     accountName: account.accountName,

@@ -12,6 +12,8 @@ import { getPortfolioData, flattenPortfolioData } from './routes/portfolio.js';
 import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
+import { getStockData } from './routes/yahooFinance.js';
+import { getCompanyData } from './routes/finnhub.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,8 +27,9 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Endpoint to start the authorization process
 app.get('/authorize', async (req, res) => {
     try {
-        const { oauth_token } = await getRequestToken();
-        const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${consumerKey}&token=${oauth_token}`;
+        const requestTokenData = await getRequestToken();
+        console.log('Request token data:', requestTokenData);
+        const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${consumerKey}&token=${requestTokenData.oauth_token}`;
         res.send(`<a href="${authorizeUrl}" target="_blank">Please authorize your application by clicking here</a>`);
     } catch (error) {
         res.status(500).send(error.message);
@@ -36,11 +39,11 @@ app.get('/authorize', async (req, res) => {
 // Endpoint to handle the verifier and get the access token
 app.get('/callback', async (req, res) => {
     try {
-        if (!cache.requestToken || !cache.requestTokenSecret || Date.now() > cache.requestTokenExpiryTime) {
-            await getRequestToken();
-        }
+        // if (!cache.requestToken || !cache.requestTokenSecret || Date.now() > cache.requestTokenExpiryTime) {
+        //     await getRequestToken();
+        // }
         const oauth_verifier = req.query.oauth_verifier;
-        await getAccessToken(cache.requestToken, cache.requestTokenSecret, oauth_verifier);
+        await getAccessToken(oauth_verifier);
         res.send('Access Token obtained successfully. You can now use the API.');
     } catch (error) {
         res.status(500).send(error.message);
@@ -165,6 +168,28 @@ app.get('/get10k', async (req, res) => {
     try {
         const filings = await get10k(ticker);
         res.json(filings);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Endpoint to retrieve yahoo finance data
+app.get('/yahooFinance', async (req, res) => {
+    const { ticker } = req.query;
+    try {
+        const data = await getStockData(ticker);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Endpoint to retrieve Finnhub data
+app.get('/finnhub', async (req, res) => {
+    const { ticker } = req.query;
+    try {
+        const data = await getCompanyData(ticker);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
