@@ -9,21 +9,21 @@ describe('EDGAR Service', () => {
         jest.clearAllMocks();
     });
 
-    test('should handle error when getting 10-K filings', async () => {
+    it('should handle error when getting 10-K filings', async () => {
         const errorMessage = 'Failed to fetch data';
         axios.get.mockRejectedValue(new Error(errorMessage));
 
         await expect(get10k('AAPL')).rejects.toThrow('Error fetching or parsing 10-K filings. Double-check the stock ticker.');
     });
 
-    test('should handle empty response when getting 10-K filings', async () => {
+    it('should handle empty response when getting 10-K filings', async () => {
         const xmlResponse = '<feed></feed>';
         axios.get.mockResolvedValue({ data: xmlResponse });
 
         await expect(get10k('AAPL')).rejects.toThrow('No 10-K filings found.');
     });
 
-    test('should handle missing fields in the response when getting 10-K filings', async () => {
+    it('should handle missing fields in the response when getting 10-K filings', async () => {
         const xmlResponse = `<feed>
             <entry>
                 <title>10-K 2023</title>
@@ -45,7 +45,7 @@ describe('EDGAR Service', () => {
         }]);
     });
 
-    test('should handle multiple entries in the response when getting 10-K filings', async () => {
+    it('should handle multiple entries in the response when getting 10-K filings', async () => {
         const xmlResponse = `<feed>
             <entry>
                 <title>10-K 2023</title>
@@ -84,7 +84,7 @@ describe('EDGAR Service', () => {
         ]);
     });
 
-    test('should get 10-K filings', async () => {
+    it('should get 10-K filings', async () => {
         const xmlResponse = `<feed>
             <entry>
                 <title>10-K 2023</title>

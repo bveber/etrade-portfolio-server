@@ -1,32 +1,48 @@
 import { getAccountBalances } from '../src/routes/accountBalances';
+import RedisCache from '../src/services/redis';
 import { getAccountList } from '../src/services/getAccountList';
-import cache from '../src/services/cache';
+import { encrypt } from '../src/services/oauth';
 
 import axios from 'axios';
 
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
+jest.mock('../src/services/redis');
 
 
 describe('Account Balances Service', () => {
+    let redisClient;
     beforeAll(() => {
-        cache.accessToken = 'accessToken';
-        cache.accessTokenSecret = 'accessTokenSecret';
-        cache.accessTokenExpiryTime = Date.now() + 100000;
+        redisClient = {
+            get: jest.fn(),
+            set: jest.fn(),
+        };
+        RedisCache.mockImplementation(() => redisClient);
+        const cachedData = {
+            oauth_token: 'cached_token',
+            encrypted_oauth_token_secret: encrypt('cached_secret')
+        };
+        redisClient.get.mockResolvedValue(cachedData);
     });
 
     afterEach(() => {
         jest.clearAllMocks();
     });
 
-    test('should handle error when getting account list', async () => {
-        const error = new Error('Failed to get account list');
+    it('should handle error when getting account list', async () => {
+        const error = new Error('Error fetching account balances.');
         getAccountList.mockRejectedValue(error);
 
         await expect(getAccountBalances()).rejects.toThrow(error);
     });
 
-    test('should handle error when getting account balances', async () => {
+    it('should handle error when getting empty account list', async () => {
+        getAccountList.mockResolvedValue(null);
+
+        await expect(getAccountBalances()).rejects.toThrow('No accounts found.');
+    });
+
+    it('should handle error when getting account balances', async () => {
         getAccountList.mockResolvedValue([
             {
                 accountIdKey: '123',
@@ -36,13 +52,13 @@ describe('Account Balances Service', () => {
             }
         ]);
 
-        const error = new Error('Failed to get account balances');
+        const error = new Error('Error fetching account balances.');
         axios.get.mockRejectedValue(error);
 
         await expect(getAccountBalances()).rejects.toThrow(error);
     });
 
-    test('should handle empty account list', async () => {
+    it('should handle empty account list', async () => {
         getAccountList.mockResolvedValue([]);
 
         const result = await getAccountBalances();
@@ -50,7 +66,7 @@ describe('Account Balances Service', () => {
         expect(result).toEqual([]);
     });
 
-    test('should handle empty account balances', async () => {
+    it('should handle empty account balances', async () => {
         getAccountList.mockResolvedValue([
             {
                 accountIdKey: '123',
@@ -73,7 +89,7 @@ describe('Account Balances Service', () => {
         ]);
     });
 
-    test('should get account balances', async () => {
+    it('should get account balances', async () => {
         getAccountList.mockResolvedValue(
             [
                 {

@@ -119,8 +119,9 @@ This project is licensed under the MIT License.
 - Fix tests
     - [x] redis
     - [x] oauth
+    - [x] edgar
     - [ ] portfolio
-    - [ ] accountBalances
+    - [x] accountBalances
     - [ ] transactions
     - [ ] finnhub
     - [ ] yahooFinance

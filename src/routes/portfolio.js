@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
 import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
-import handleCustomError from '../services/errorHandler.js';
 
 
 async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
@@ -17,7 +16,7 @@ async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)
         const response = await axios.get(requestData.url, { headers });
         return response.data;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error retrieving portfolio data.', error);
     }
 }
 
@@ -42,7 +41,7 @@ async function getPortfolioData() {
 
         return accountPortfolios;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error fetching portfolio data.', error);
     }
 }
 
@@ -74,7 +73,7 @@ async function flattenPortfolioData(portfolios) {
         return all_positions;
     }
     catch (error) {
-        handleCustomError(error);
+        throw new Error('Error flattening portfolio data.', error);
     }
 }
 
