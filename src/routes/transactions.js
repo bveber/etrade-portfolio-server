@@ -1,31 +1,26 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl } from '../services/oauth.js';
-import cache from '../services/cache.js';
-import handleCustomError from '../services/errorHandler.js';
+import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
 
 async function getAccountTransactions(accountIdKey) {
+    const token = await getAccessTokenCache();
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/transactions?count=50`,
         method: 'GET',
     };
 
-    const token = { key: cache.accessToken, secret: cache.accessTokenSecret };
+    // const token = { key: accessToken.oauth_token, secret: accessToken.oauth_secret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
     try {
         const response = await axios.get(requestData.url, { headers });
         return response.data;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error fetching account transactions.', error);
     }
 }
 
 async function getTransactionsData() {
-    if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
-        throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
-    }
-
     try {
         const accountList = await getAccountList();
         const accounts = accountList;
@@ -47,7 +42,7 @@ async function getTransactionsData() {
 
         return accountTransactions;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error fetching transactions data.', error);
     }
 }
 
