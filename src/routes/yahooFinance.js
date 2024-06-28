@@ -18,7 +18,7 @@ async function getStockData(symbol) {
         const data = await yahooFinance.quoteSummary(symbol, queryOptions);
 
         // Store data in Redis
-        await redisClient.set(cacheToken, JSON.stringify(data));
+        await redisClient.set(cacheToken, data, 3600);
         
         return data;
     } catch (error) {

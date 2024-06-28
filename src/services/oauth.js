@@ -41,11 +41,10 @@ function decrypt(text) {
 }
 
 // Function to get request token
-async function getRequestToken() {
-    const redisClient = new RedisCache(300);
+async function getRequestToken(redisClient = new RedisCache()) {
+    // const redisClient = new RedisCache();
     const cacheToken = `oauth:getRequestToken`;
     const cachedData = await redisClient.get(cacheToken);
-    console.log('Cached data:', cachedData);
     if (cachedData) {
         return cachedData;
     }
@@ -70,7 +69,7 @@ async function getRequestToken() {
             oauth_token,
             oauth_token_secret,
         };
-        redisClient.set(cacheToken, JSON.stringify(data));
+        redisClient.set(cacheToken, data, 300);
         return data;
     } catch (error) {
         console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
@@ -79,26 +78,15 @@ async function getRequestToken() {
 }
 
 // Function to get access token
-async function getAccessToken(verifier) {
-    const redisClient = new RedisCache();
+async function getAccessToken(verifier, redisClient = new RedisCache()) {
     const cacheToken = `oauth:getAccessToken`;
     const cachedData = await redisClient.get(cacheToken);
-    console.log('getAccessToken Cached data:', cachedData);
     if (cachedData) {
         const oauth_token = cachedData.oauth_token;
         const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
         return { oauth_token, oauth_token_secret }
     }
-    const token = await getAccessTokenCache();
-    console.log('getAccessToken Request token data:', requestTokenData);
-    // const requestToken = requestTokenData.oauth_token;
-    // if (!requestToken) {
-    //     throw new Error('Request token is missing');
-    // }   
-    // const requestTokenSecret = requestTokenData.oauth_token_secret;
-    // if (!requestTokenSecret) {
-    //     throw new Error('Request token secret is missing');
-    // }
+    const requestTokenData = await getRequestToken();
     if (!verifier) {
         throw new Error('Verifier is missing');
     }
@@ -108,9 +96,7 @@ async function getAccessToken(verifier) {
         method: 'POST',
         data: { oauth_verifier: verifier },
     };
-    console.log('Request data:', requestData);
-    // const token = { key: requestToken, secret: requestTokenSecret };
-    console.log('Token:', token);
+    const token = { key: requestTokenData.oauth_token, secret: requestTokenData.oauth_token_secret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers.oauth_verifier = verifier;
@@ -126,14 +112,13 @@ async function getAccessToken(verifier) {
         const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
         console.log('Access token:', accessToken);
         console.log('Encrypted access token secret:', encryptedAccessTokenSecret);
-        // cache.accessTokenExpiryTime = getEndOfDayEasternTime();
 
         const data = {
             'oauth_token': accessToken,
             'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
         };
 
-        redisClient.set(cacheToken, JSON.stringify(data));
+        redisClient.set(cacheToken, data, 86400);
         return data;
     } catch (error) {
         console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
@@ -141,14 +126,13 @@ async function getAccessToken(verifier) {
     }
 }
 
-async function getAccessTokenCache() {
-    const redisClient = new RedisCache();
+async function getAccessTokenCache(redisClient = new RedisCache()) {
     const cacheToken = `oauth:getAccessToken`;
     const cachedData = await redisClient.get(cacheToken);
-    const token = { key: cachedData.oauth_token, secret: decrypt(cachedData.encrypted_oauth_token_secret) };
     if (!cachedData) {
         throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
     }
+    const token = { key: cachedData.oauth_token, secret: decrypt(cachedData.encrypted_oauth_token_secret) };
     return token;
 }
 
@@ -159,6 +143,7 @@ export {
   oauth,
   consumerKey,
   baseUrl,
+  encrypt,
   decrypt,
   getAccessTokenCache
 };

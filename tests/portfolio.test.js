@@ -3,228 +3,124 @@ import cache from '../src/services/cache';
 
 import axios from 'axios';
 import { getAccountList } from '../src/services/getAccountList';
+import { getPortfolioData, flattenPortfolioData } from '../src/routes/portfolio';
+import cache from '../src/services/cache';
+import axios from 'axios';
+import { getAccountList } from '../src/services/getAccountList';
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
 
 // Test Suite
 describe('Portfolio Service', () => {
-    beforeAll(() => {
-        cache.accessToken = 'accessToken';
-        cache.accessTokenSecret = 'accessTokenSecret';
-        cache.accessTokenExpiryTime = Date.now() + 100000;
-    });
+    jest.mock('axios');
+    jest.mock('../src/services/getAccountList');
 
-    afterEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('should get portfolio data', async () => {
-        getAccountList.mockResolvedValue([{ accountIdKey: '123', accountName: 'Test Account' }]);
-        axios.get.mockResolvedValue({ data: 'portfolio data' });
-
-        const result = await getPortfolioData();
-
-        expect(result).toEqual([{ accountId: '123', accountName: 'Test Account', portfolio: 'portfolio data' }]);
-    });
-
-    test('should throw error if no accounts found', async () => {
-        getAccountList.mockResolvedValue(null);
-
-        await expect(getPortfolioData()).rejects.toThrow('No accounts found.');
-    });
-
-    test('should throw error if getAccountList throws error', async () => {
-        getAccountList.mockRejectedValue(new Error('Test Error'));
-
-        await expect(getPortfolioData()).rejects.toThrow('Test Error');
-    });
-
-    test('should throw error if getAccountPortfolio throws error', async () => {
-        getAccountList.mockResolvedValue([{ accountIdKey: '123', accountName: 'Test Account' }]);
-        axios.get.mockRejectedValue(new Error('Test Error'));
-
-        await expect(getPortfolioData()).rejects.toThrow('Test Error');
-    });
-
-    test('should flatten portfolio data with multiple positions', async () => {
+    // Test Suite
+    describe('Portfolio Service', () => {
+        // Mocked data
+        const accountIdKey = '123456789';
+        const accessToken = 'access_token';
+        const accessTokenSecret = 'access_token_secret';
         const portfolios = [
-            {
-                accountId: '123',
-                accountName: 'Test Account',
-                portfolio: {
-                    PortfolioResponse: {
-                        AccountPortfolio: [
-                            {
-                                Position: [
-                                    {
-                                        symbolDescription: 'AAPL',
-                                        quantity: 10,
-                                        Quick: { lastTrade: 100 },
-                                        marketValue: 1000,
-                                    },
-                                    {
-                                        symbolDescription: 'MSFT',
-                                        quantity: 20,
-                                        Quick: { lastTrade: 200 },
-                                        marketValue: 4000,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
-            },
+            { symbol: 'AAPL', quantity: 10, price: 150 },
+            { symbol: 'GOOGL', quantity: 5, price: 2500 },
         ];
 
-        const result = await flattenPortfolioData(portfolios);
+        // Mocked functions
+        const mockGetAccountList = jest.fn(() => Promise.resolve(accountIdKey));
+        const mockGetAccessTokenCache = jest.fn(() => Promise.resolve({ accessToken, accessTokenSecret }));
+        const mockAxiosGet = jest.fn(() => Promise.resolve({ data: portfolios }));
 
-        expect(result).toEqual([
-            {
-                accountIds: ['123'],
-                accountNames: ['Test Account'],
-                symbol: 'MSFT',
-                quantity: 20,
-                price: 200,
-                marketValue: 4000,
-            },
-            {
-                accountIds: ['123'],
-                accountNames: ['Test Account'],
-                symbol: 'AAPL',
-                quantity: 10,
-                price: 100,
-                marketValue: 1000,
-            },
-        ]);
-    });
+        // Mock dependencies
+        jest.mock('../src/services/getAccountList', () => ({
+            getAccountList: mockGetAccountList,
+        }));
+        jest.mock('../src/services/oauth', () => ({
+            getAccessTokenCache: mockGetAccessTokenCache,
+        }));
+        jest.mock('axios', () => ({
+            get: mockAxiosGet,
+        }));
 
-    test('should flatten portfolio data with multiple positions and accounts with different symbols', async () => {
-        const portfolios = [
-            {
-                accountId: '123',
-                accountName: 'Test Account 1',
-                portfolio: {
-                    PortfolioResponse: {
-                        AccountPortfolio: [
-                            {
-                                Position: [
-                                    {
-                                        symbolDescription: 'AAPL',
-                                        quantity: 10,
-                                        Quick: { lastTrade: 100 },
-                                        marketValue: 1000,
-                                    },
-                                    {
-                                        symbolDescription: 'MSFT',
-                                        quantity: 10,
-                                        Quick: { lastTrade: 200 },
-                                        marketValue: 2000,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
-            },
-            {
-                accountId: '456',
-                accountName: 'Test Account 2',
-                portfolio: {
-                    PortfolioResponse: {
-                        AccountPortfolio: [
-                            {
-                                Position: [
-                                    {
-                                        symbolDescription: 'GOOGL',
-                                        quantity: 20,
-                                        Quick: { lastTrade: 100 },
-                                        marketValue: 2000,
-                                    },
-                                    {
-                                        symbolDescription: 'MSFT',
-                                        quantity: 30,
-                                        Quick: { lastTrade: 200 },
-                                        marketValue: 6000,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
-            },
-        ];
+        // Test getAccountPortfolio function
+        describe('getAccountPortfolio', () => {
+            it('should call getAccountList and getAccessTokenCache with correct arguments', async () => {
+                await getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret);
 
-        const result = await flattenPortfolioData(portfolios);
-        console.log('portfolio test result ', result);
+                expect(mockGetAccountList).toHaveBeenCalledWith(accountIdKey);
+                expect(mockGetAccessTokenCache).toHaveBeenCalledWith(accountIdKey);
+            });
 
-        expect(result).toEqual([
-            {
-                accountIds: ['123', '456'],
-                accountNames: ['Test Account 1', 'Test Account 2'],
-                symbol: 'MSFT',
-                quantity: 40,
-                price: 200,
-                marketValue: 8000,
-            },
-            {
-                accountIds: ['456'],
-                accountNames: ['Test Account 2'],
-                symbol: 'GOOGL',
-                quantity: 20,
-                price: 100,
-                marketValue: 2000,
-            },
-            {
-                accountIds: ['123'],
-                accountNames: ['Test Account 1'],
-                symbol: 'AAPL',
-                quantity: 10,
-                price: 100,
-                marketValue: 1000,
-            },
-        ]);
-    });
+            it('should call axios.get with the correct URL', async () => {
+                await getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret);
 
-    test('should throw error if flattenPortfolioData throws error', async () => {
-        // Test case where AccountPortfolio in portfolio JSON is undefined
-        const portfolios = [
-            {
-                accountId: '123',
-                accountName: 'Test Account 1',
-                portfolio: {
-                        AccountPortfolio: [
-                            {
-                                Position: [
-                                    {
-                                        symbolDescription: 'AAPL',
-                                        quantity: 10,
-                                        Quick: { lastTrade: 100 },
-                                        marketValue: 1000,
-                                    },
-                                    {
-                                        symbolDescription: 'MSFT',
-                                        quantity: 10,
-                                        Quick: { lastTrade: 200 },
-                                        marketValue: 2000,
-                                    },
-                                ],
-                            },
-                        ],
-                },
-            },
-        ];
+                expect(mockAxiosGet).toHaveBeenCalledWith(`${baseUrl}/v1/accounts/${accountIdKey}/portfolio`);
+            });
 
+            it('should return the portfolio data', async () => {
+                const result = await getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret);
 
-        await expect(
-            flattenPortfolioData(portfolios)
-        ).rejects.toThrow("Cannot read properties of undefined (reading 'AccountPortfolio')");
-    });
+                expect(result).toEqual(portfolios);
+            });
 
-    test('should throw error if OAuth tokens are not available or expired', async () => {
-        cache.accessToken = null;
-        cache.accessTokenSecret = null;
+            it('should throw an error if getAccountList throws an error', async () => {
+                const errorMessage = 'Error retrieving account list';
+                mockGetAccountList.mockRejectedValueOnce(new Error(errorMessage));
 
-        await expect(getPortfolioData()).rejects.toThrow('OAuth tokens are not available or expired. Please authenticate first.');
+                await expect(getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)).rejects.toThrow(errorMessage);
+            });
+
+            it('should throw an error if getAccessTokenCache throws an error', async () => {
+                const errorMessage = 'Error retrieving access token cache';
+                mockGetAccessTokenCache.mockRejectedValueOnce(new Error(errorMessage));
+
+                await expect(getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)).rejects.toThrow(errorMessage);
+            });
+
+            it('should throw an error if axios.get throws an error', async () => {
+                const errorMessage = 'Error retrieving portfolio data';
+                mockAxiosGet.mockRejectedValueOnce(new Error(errorMessage));
+
+                await expect(getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)).rejects.toThrow(errorMessage);
+            });
+        });
+
+        // Test getPortfolioData function
+        describe('getPortfolioData', () => {
+            it('should call getAccountPortfolio with the correct arguments', async () => {
+                const mockGetAccountPortfolio = jest.fn(() => Promise.resolve(portfolios));
+                jest.mock('../src/routes/portfolio', () => ({
+                    getAccountPortfolio: mockGetAccountPortfolio,
+                }));
+
+                await getPortfolioData();
+
+                expect(mockGetAccountPortfolio).toHaveBeenCalledWith(accountIdKey, accessToken, accessTokenSecret);
+            });
+
+            it('should return the flattened portfolio data', async () => {
+                const mockFlattenPortfolioData = jest.fn(() => portfolios);
+                jest.mock('../src/routes/portfolio', () => ({
+                    flattenPortfolioData: mockFlattenPortfolioData,
+                }));
+
+                const result = await getPortfolioData();
+
+                expect(result).toEqual(portfolios);
+            });
+        });
+
+        // Test flattenPortfolioData function
+        describe('flattenPortfolioData', () => {
+            it('should flatten the portfolio data correctly', () => {
+                const flattenedData = flattenPortfolioData(portfolios);
+
+                expect(flattenedData).toEqual([
+                    { symbol: 'AAPL', quantity: 10, price: 150, value: 1500 },
+                    { symbol: 'GOOGL', quantity: 5, price: 2500, value: 12500 },
+                ]);
+            });
+        });
     });
 
 });

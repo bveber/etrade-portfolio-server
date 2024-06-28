@@ -32,7 +32,7 @@ async function getCompanyData(symbol) {
         });
 
         // Store data in Redis
-        await redisClient.set(cacheToken, JSON.stringify(data));
+        await redisClient.set(cacheToken, data, 3600);
 
         return data;
     } catch (error) {
