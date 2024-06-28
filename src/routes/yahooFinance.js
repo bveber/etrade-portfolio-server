@@ -19,7 +19,7 @@ async function getStockData(symbol) {
 
         // Store data in Redis
         await redisClient.set(cacheToken, data, 3600);
-        
+
         return data;
     } catch (error) {
         throw new Error(`Error fetching data for ${symbol}: ${error.message}`);

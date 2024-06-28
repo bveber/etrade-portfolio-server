@@ -1,12 +1,5 @@
 import { getPortfolioData, flattenPortfolioData } from '../src/routes/portfolio';
-import cache from '../src/services/cache';
 
-import axios from 'axios';
-import { getAccountList } from '../src/services/getAccountList';
-import { getPortfolioData, flattenPortfolioData } from '../src/routes/portfolio';
-import cache from '../src/services/cache';
-import axios from 'axios';
-import { getAccountList } from '../src/services/getAccountList';
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
 

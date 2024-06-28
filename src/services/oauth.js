@@ -43,7 +43,7 @@ function decrypt(text) {
 // Function to get request token
 async function getRequestToken(redisClient = new RedisCache()) {
     // const redisClient = new RedisCache();
-    const cacheToken = `oauth:getRequestToken`;
+    const cacheToken = 'oauth:getRequestToken';
     const cachedData = await redisClient.get(cacheToken);
     if (cachedData) {
         return cachedData;
@@ -79,12 +79,12 @@ async function getRequestToken(redisClient = new RedisCache()) {
 
 // Function to get access token
 async function getAccessToken(verifier, redisClient = new RedisCache()) {
-    const cacheToken = `oauth:getAccessToken`;
+    const cacheToken = 'oauth:getAccessToken';
     const cachedData = await redisClient.get(cacheToken);
     if (cachedData) {
         const oauth_token = cachedData.oauth_token;
         const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
-        return { oauth_token, oauth_token_secret }
+        return { oauth_token, oauth_token_secret };
     }
     const requestTokenData = await getRequestToken();
     if (!verifier) {
@@ -127,7 +127,7 @@ async function getAccessToken(verifier, redisClient = new RedisCache()) {
 }
 
 async function getAccessTokenCache(redisClient = new RedisCache()) {
-    const cacheToken = `oauth:getAccessToken`;
+    const cacheToken = 'oauth:getAccessToken';
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {
         throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
@@ -138,12 +138,12 @@ async function getAccessTokenCache(redisClient = new RedisCache()) {
 
 
 export {
-  getRequestToken,
-  getAccessToken,
-  oauth,
-  consumerKey,
-  baseUrl,
-  encrypt,
-  decrypt,
-  getAccessTokenCache
+    getRequestToken,
+    getAccessToken,
+    oauth,
+    consumerKey,
+    baseUrl,
+    encrypt,
+    decrypt,
+    getAccessTokenCache
 };

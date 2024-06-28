@@ -17,7 +17,7 @@ describe('EDGAR Service', () => {
     });
 
     test('should handle empty response when getting 10-K filings', async () => {
-        const xmlResponse = `<feed></feed>`;
+        const xmlResponse = '<feed></feed>';
         axios.get.mockResolvedValue({ data: xmlResponse });
 
         await expect(get10k('AAPL')).rejects.toThrow('No 10-K filings found.');

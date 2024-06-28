@@ -1,8 +1,7 @@
 export default {
     transform: {
-      '^.+\\.js$': 'babel-jest'
+        '^.+\\.js$': 'babel-jest'
     },
-    setupFiles: ["./jest.setup.js"],
+    setupFiles: ['./jest.setup.js'],
     testEnvironment: 'node'
-  };
-  
+};

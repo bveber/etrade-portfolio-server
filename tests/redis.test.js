@@ -15,7 +15,7 @@ describe('RedisCache', () => {
 
     it('should get a value from cache', async () => {
         const key = 'testKey';
-        const value = {'key': 'testValue'};
+        const value = { 'key': 'testValue' };
         // Set the value in cache
         await redisCache.set(key, value );
 
@@ -35,7 +35,7 @@ describe('RedisCache', () => {
 
     it('should set a value in cache', async () => {
         const key = 'testKey';
-        const value = {'key': 'testValue'};
+        const value = { 'key': 'testValue' };
 
         // Set the value in cache
         await redisCache.set(key, value);
@@ -48,7 +48,7 @@ describe('RedisCache', () => {
 
     it('should set a value in cache with a custom TTL', async () => {
         const key = 'testKey';
-        const value = {'key': 'testValue'};
+        const value = { 'key': 'testValue' };
         const ttl = 60; // 1 minute
         // Set the value in cache with custom TTL
         await redisCache.set(key, value, ttl);
@@ -61,7 +61,7 @@ describe('RedisCache', () => {
 
     it('should clear a key from cache', async () => {
         const key = 'testKey';
-        const value = {'key': 'testValue'};
+        const value = { 'key': 'testValue' };
 
         // Set the value in cache
         await redisCache.set(key, value);
@@ -77,11 +77,11 @@ describe('RedisCache', () => {
 
     it('should clear all keys from cache', async () => {
         const key1 = 'testKey1';
-        const value1 = {'key': 'testValue1'};
+        const value1 = { 'key': 'testValue1' };
         const key2 = 'testKey2';
-        const value2 = {'key': 'testValue2'};
+        const value2 = { 'key': 'testValue2' };
         const key3 = 'testKey3';
-        const value3 = {'key': 'testValue3'};
+        const value3 = { 'key': 'testValue3' };
         // Set the values in cache
         await redisCache.set(key1, value1);
         await redisCache.set(key2, value2);
@@ -106,7 +106,7 @@ describe('RedisCache', () => {
 
         // Clear all keys from cache
         await expect(redisCache.clearAll()).rejects.toThrow('Cannot clear all keys in active environment. This method is only available in the test');
-        redisCache.db = 1
+        redisCache.db = 1;
     });
 
     it('should handle errors when getting a value from cache', async () => {
@@ -117,11 +117,11 @@ describe('RedisCache', () => {
 
         // Get the value from cache
         await expect(redisCache.get(key)).rejects.toThrow(errorMessage);
-    }); 
+    });
 
     it('should handle errors when setting a value in cache', async () => {
         const key = 'testKey';
-        const value = {'key': 'testValue'};
+        const value = { 'key': 'testValue' };
         const errorMessage = 'Error setting value in Redis';
         // Mock the Redis set method to throw an error
         redisCache.client.set = jest.fn(() => { throw new Error(errorMessage); });
@@ -158,7 +158,7 @@ describe('RedisCache', () => {
 
     it('should handle errors when quitting the Redis connection', async () => {
         const errorMessage = 'Error closing connection to Redis';
-        
+
         // Mock the Redis quit method to throw an error
         const quitMock = jest.spyOn(redisCache.client, 'quit').mockImplementation(() => {
             throw new Error(errorMessage);

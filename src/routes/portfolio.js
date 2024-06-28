@@ -1,11 +1,8 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, decrypt, getAccessTokenCache } from '../services/oauth.js';
-import cache from '../services/cache.js';
+import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
 import handleCustomError from '../services/errorHandler.js';
-import RedisCache from '../services/redis.js';
 
-const redisClient = new RedisCache();
 
 async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
     const requestData = {
@@ -52,9 +49,9 @@ async function getPortfolioData() {
 async function flattenPortfolioData(portfolios) {
     try {
         let all_positions = [];
-        const flattenedPortfolio = portfolios.reduce((result, portfolio) => {
+        portfolios.reduce((result, portfolio) => {
             const { accountId, accountName, portfolio: portfolioData } = portfolio;
-            const flattenedPositions = portfolioData.PortfolioResponse.AccountPortfolio[0].Position.reduce((positions, position) => {
+            portfolioData.PortfolioResponse.AccountPortfolio[0].Position.reduce((_, position) => {
                 const existingPosition = all_positions.find(p => p.symbol === position.symbolDescription);
                 if (existingPosition) {
                     existingPosition.accountIds.push(accountId);

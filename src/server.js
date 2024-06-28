@@ -2,12 +2,11 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { 
-    getRequestToken, 
-    getAccessToken, 
+import {
+    getRequestToken,
+    getAccessToken,
     consumerKey,
 } from './services/oauth.js';
-import cache from './services/cache.js';
 import { getPortfolioData, flattenPortfolioData } from './routes/portfolio.js';
 import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';

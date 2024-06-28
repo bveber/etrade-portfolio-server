@@ -2,14 +2,14 @@ import { createClient } from 'redis';
 
 class RedisCache {
     constructor() {
-        this.db = process.env.NODE_ENV === 'test' ? 1 : 0
+        this.db = process.env.NODE_ENV === 'test' ? 1 : 0;
         this.redisOptions = {
             socket: {
                 host: process.env.REDIS_HOST || '127.0.0.1',
                 port: process.env.REDIS_PORT || 6379,
             },
             database: this.db,
-          };
+        };
         this.client = createClient(this.redisOptions);
 
         this.client.on('error', (err) => console.error('Redis Client Error', err));
@@ -29,7 +29,7 @@ class RedisCache {
     }
 
     async get(key) {
-        console.log(`Getting value from Redis db ${this.db}:, ${key}`)
+        console.log(`Getting value from Redis db ${this.db}:, ${key}`);
         try {
             const value = await this.client.get(key);
             if (value) {

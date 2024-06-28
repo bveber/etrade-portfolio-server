@@ -8,7 +8,7 @@ config();
 
 jest.mock('axios');
 jest.mock('../src/services/redis');
-  
+
 
 describe('OAuth Service', () => {
     let redisClient;
@@ -26,7 +26,7 @@ describe('OAuth Service', () => {
     });
 
     describe('getRequestToken', () => {
-        
+
         it('should return cached data if available', async () => {
             const cachedData = {
                 oauth_token: 'cached_token',
@@ -89,13 +89,13 @@ describe('OAuth Service', () => {
             const result = await oauthServices.getAccessToken('verifier');
             expect(result.oauth_token).toEqual(responseData.oauth_token);
             expect(oauthServices.decrypt(result.encrypted_oauth_token_secret)).toEqual(responseData.oauth_token_secret);
-            mockGet.mockRestore()
+            mockGet.mockRestore();
         });
 
         it('should throw error if verifier is missing', async () => {
             await expect(oauthServices.getAccessToken()).rejects.toThrow('Verifier is missing');
         });
-        
+
         it('should throw error if request fails', async () => {
             redisClient.get.mockResolvedValue(null);
             axios.post.mockRejectedValue(new Error('Request failed'));
@@ -124,7 +124,7 @@ describe('OAuth Service', () => {
             redisClient.get.mockResolvedValue(cachedData);
 
             const result = await oauthServices.getAccessTokenCache();
-            expect(result).toEqual({ key: cachedData.oauth_token, secret: oauthServices.decrypt(cachedData.encrypted_oauth_token_secret)});
+            expect(result).toEqual({ key: cachedData.oauth_token, secret: oauthServices.decrypt(cachedData.encrypted_oauth_token_secret) });
         });
 
         it('should throw error if no cached data', async () => {

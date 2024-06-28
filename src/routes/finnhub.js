@@ -21,9 +21,9 @@ async function getCompanyData(symbol) {
         const finnhubClient = new finnhub.DefaultApi();
 
         const data = await new Promise((resolve, reject) => {
-            finnhubClient.companyProfile2({symbol: symbol}, (error, data, response) => {
+            finnhubClient.companyProfile2({ symbol: symbol }, (error, data, ) => {
                 if (error) {
-                    console.error("Error calling Finnhub API:", error);
+                    console.error('Error calling Finnhub API:', error);
                     reject(error);
                 } else {
                     resolve(data);

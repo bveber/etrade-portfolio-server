@@ -28,11 +28,11 @@ describe('Account Balances Service', () => {
 
     test('should handle error when getting account balances', async () => {
         getAccountList.mockResolvedValue([
-            { 
-                accountIdKey: '123', 
-                accountId: '456', 
-                accountName: 'Test Account', 
-                institutionType: 'BROKERAGE' 
+            {
+                accountIdKey: '123',
+                accountId: '456',
+                accountName: 'Test Account',
+                institutionType: 'BROKERAGE'
             }
         ]);
 
@@ -52,11 +52,11 @@ describe('Account Balances Service', () => {
 
     test('should handle empty account balances', async () => {
         getAccountList.mockResolvedValue([
-            { 
-                accountIdKey: '123', 
-                accountId: '456', 
-                accountName: 'Test Account', 
-                institutionType: 'BROKERAGE' 
+            {
+                accountIdKey: '123',
+                accountId: '456',
+                accountName: 'Test Account',
+                institutionType: 'BROKERAGE'
             }
         ]);
 
@@ -65,10 +65,10 @@ describe('Account Balances Service', () => {
         const result = await getAccountBalances();
 
         expect(result).toEqual([
-            { 
-                accountId: '456', 
-                accountName: 'Test Account', 
-                balance: null 
+            {
+                accountId: '456',
+                accountName: 'Test Account',
+                balance: null
             }
         ]);
     });
@@ -76,11 +76,11 @@ describe('Account Balances Service', () => {
     test('should get account balances', async () => {
         getAccountList.mockResolvedValue(
             [
-                { 
-                    accountIdKey: '123', 
-                    accountId: '456', 
-                    accountName: 'Test Account', 
-                    institutionType: 'BROKERAGE' 
+                {
+                    accountIdKey: '123',
+                    accountId: '456',
+                    accountName: 'Test Account',
+                    institutionType: 'BROKERAGE'
                 }
             ]
         );
@@ -90,10 +90,10 @@ describe('Account Balances Service', () => {
 
         expect(result).toEqual(
             [
-                { 
-                    accountId: '456', 
-                    accountName: 'Test Account', 
-                    balance: 'balance data' 
+                {
+                    accountId: '456',
+                    accountName: 'Test Account',
+                    balance: 'balance data'
                 }
             ]
         );

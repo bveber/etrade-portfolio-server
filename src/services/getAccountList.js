@@ -1,10 +1,6 @@
 import axios from 'axios';
-import { oauth, baseUrl, decrypt, getAccessTokenCache } from './oauth.js';
-import cache from './cache.js';
+import { oauth, baseUrl, getAccessTokenCache } from './oauth.js';
 import handleCustomError from './errorHandler.js';
-import RedisCache from '../services/redis.js';
-
-const redisClient = new RedisCache();
 
 async function getAccountList() {
     const token = await getAccessTokenCache();

@@ -122,6 +122,8 @@ This project is licensed under the MIT License.
     - [ ] portfolio
     - [ ] accountBalances
     - [ ] transactions
+    - [ ] finnhub
+    - [ ] yahooFinance
 - Add ability to drill down into stocks
     - [x] Get company profile
     - [x] Get filings
