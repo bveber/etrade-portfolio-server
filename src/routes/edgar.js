@@ -14,14 +14,12 @@ async function fetchData(queryUrl) {
         });
         return response.data;
     } catch (error) {
-        console.error('Error fetching or parsing 10-K filings:', error.message);
-        throw new Error('Error fetching or parsing 10-K filings. Double-check the stock ticker.');
+        throw new Error('Error fetching or parsing 10-K filings. Double-check the stock ticker.', error);
     }
 }
 
 // function that fetches 10-K filings from SEC Edgar
 async function get10k(ticker) {
-    console.log('Fetching 10-K filing data for:', ticker);
     const queryUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}&type=10-K&dateb=&owner=include&count=10&output=atom`;
     const response = await fetchData(queryUrl);
 

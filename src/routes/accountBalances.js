@@ -6,7 +6,6 @@ import handleCustomError from '../services/errorHandler.js';
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
     const token = await getAccessTokenCache();
-    console.log('getAccountBalance token:', token);
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
         method: 'GET',

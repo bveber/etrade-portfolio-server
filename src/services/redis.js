@@ -47,7 +47,6 @@ class RedisCache {
 
     async set(key, value, ttl = 86400) {
         try {
-            console.log('Setting value in Redis:', key, value, ttl);
             await this.client.set(key, JSON.stringify(value), {
                 EX: ttl,
             });

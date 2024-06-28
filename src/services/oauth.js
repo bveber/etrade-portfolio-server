@@ -100,7 +100,6 @@ async function getAccessToken(verifier, redisClient = new RedisCache()) {
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers.oauth_verifier = verifier;
-    console.log('Headers:', headers);
 
     try {
         const response = await axios.post(requestData.url, {}, { headers });
@@ -110,8 +109,6 @@ async function getAccessToken(verifier, redisClient = new RedisCache()) {
         }
         const accessToken = responseData.get('oauth_token');
         const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
-        console.log('Access token:', accessToken);
-        console.log('Encrypted access token secret:', encryptedAccessTokenSecret);
 
         const data = {
             'oauth_token': accessToken,

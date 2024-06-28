@@ -27,7 +27,6 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.get('/authorize', async (req, res) => {
     try {
         const requestTokenData = await getRequestToken();
-        console.log('Request token data:', requestTokenData);
         const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${consumerKey}&token=${requestTokenData.oauth_token}`;
         res.send(`<a href="${authorizeUrl}" target="_blank">Please authorize your application by clicking here</a>`);
     } catch (error) {
@@ -114,7 +113,6 @@ app.get('/portfolioPage', (req, res) => {
 // Endpoint to request portfolio data
 app.get('/portfolioFlattened', async (req, res) => {
     try {
-        console.log('Reading portfolio data');
         const portfolio = await getPortfolioData();
         // const portfolio = JSON.parse(fs.readFileSync('data/portfolio.json'));
         const data = await flattenPortfolioData(portfolio);

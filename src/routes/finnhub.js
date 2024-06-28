@@ -23,7 +23,7 @@ async function getCompanyData(symbol) {
         const data = await new Promise((resolve, reject) => {
             finnhubClient.companyProfile2({ symbol: symbol }, (error, data, ) => {
                 if (error) {
-                    console.error('Error calling Finnhub API:', error);
+                    // console.error('Error calling Finnhub API:', error);
                     reject(error);
                 } else {
                     resolve(data);
@@ -36,7 +36,7 @@ async function getCompanyData(symbol) {
 
         return data;
     } catch (error) {
-        console.error('Error:', error);
+        // console.error('Error:', error);
         throw error;
     }
 }
