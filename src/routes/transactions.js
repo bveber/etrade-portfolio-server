@@ -21,14 +21,13 @@ async function getAccountTransactions(accountIdKey) {
 }
 
 async function getTransactionsData() {
+    const accountList = await getAccountList();
+    const accounts = accountList;
+
+    if (!accounts) {
+        throw new Error('No accounts found.');
+    }
     try {
-        const accountList = await getAccountList();
-        const accounts = accountList;
-
-        if (!accounts) {
-            throw new Error('No accounts found.');
-        }
-
         const accountTransactions = await Promise.all(
             accounts.map(async (account) => {
                 const transactions = await getAccountTransactions(account.accountIdKey);

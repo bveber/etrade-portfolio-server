@@ -12,7 +12,7 @@ import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
 import { getStockData } from './routes/yahooFinance.js';
-import { getCompanyData } from './routes/finnhub.js';
+import { getCompanyData } from './routes/finnhubApi.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

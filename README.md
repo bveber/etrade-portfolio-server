@@ -120,9 +120,10 @@ This project is licensed under the MIT License.
     - [x] redis
     - [x] oauth
     - [x] edgar
-    - [ ] portfolio
+    - [x] portfolio
     - [x] accountBalances
-    - [ ] transactions
+    - [x] transactions
+    - [x] getAccountList
     - [ ] finnhub
     - [ ] yahooFinance
 - Add ability to drill down into stocks

@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 
-class RedisCache {
+class RedisClientHandler {
     constructor() {
         this.db = process.env.NODE_ENV === 'test' ? 1 : 0;
         this.redisOptions = {
@@ -88,4 +88,4 @@ class RedisCache {
 
 }
 
-export default RedisCache;
+export default RedisClientHandler;

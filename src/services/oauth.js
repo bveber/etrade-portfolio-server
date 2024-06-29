@@ -1,7 +1,7 @@
 import axios from 'axios';
 import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
-import RedisCache from './redis.js';
+import RedisClientHandler from './redis.js';
 import { config } from 'dotenv';
 
 config();
@@ -41,8 +41,7 @@ function decrypt(text) {
 }
 
 // Function to get request token
-async function getRequestToken(redisClient = new RedisCache()) {
-    // const redisClient = new RedisCache();
+async function getRequestToken(redisClient = new RedisClientHandler()) {
     const cacheToken = 'oauth:getRequestToken';
     const cachedData = await redisClient.get(cacheToken);
     if (cachedData) {
@@ -56,13 +55,13 @@ async function getRequestToken(redisClient = new RedisCache()) {
     };
 
     const headers = oauth.toHeader(oauth.authorize(requestData));
+    const response = await axios.post(requestData.url, {}, { headers });
+    const responseData = new URLSearchParams(response.data);
+    if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
+        throw new Error('Request token response not properly formatted');
+    }
 
     try {
-        const response = await axios.post(requestData.url, {}, { headers });
-        const responseData = new URLSearchParams(response.data);
-        if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
-            throw new Error('Failed to get request token');
-        }
         const oauth_token = responseData.get('oauth_token');
         const oauth_token_secret = responseData.get('oauth_token_secret');
         const data = {
@@ -72,13 +71,13 @@ async function getRequestToken(redisClient = new RedisCache()) {
         redisClient.set(cacheToken, data, 300);
         return data;
     } catch (error) {
-        console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
-        throw error;
+        // console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
+        throw new Error('Failed to get request token', error);
     }
 }
 
 // Function to get access token
-async function getAccessToken(verifier, redisClient = new RedisCache()) {
+async function getAccessToken(verifier, redisClient = new RedisClientHandler()) {
     const cacheToken = 'oauth:getAccessToken';
     const cachedData = await redisClient.get(cacheToken);
     if (cachedData) {
@@ -101,12 +100,13 @@ async function getAccessToken(verifier, redisClient = new RedisCache()) {
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers.oauth_verifier = verifier;
 
+    const response = await axios.post(requestData.url, {}, { headers });
+    const responseData = new URLSearchParams(response.data);
+    if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
+        throw new Error('Failed to get access token');
+    }
+
     try {
-        const response = await axios.post(requestData.url, {}, { headers });
-        const responseData = new URLSearchParams(response.data);
-        if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
-            throw new Error('Failed to get access token');
-        }
         const accessToken = responseData.get('oauth_token');
         const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
 
@@ -123,7 +123,7 @@ async function getAccessToken(verifier, redisClient = new RedisCache()) {
     }
 }
 
-async function getAccessTokenCache(redisClient = new RedisCache()) {
+async function getAccessTokenCache(redisClient = new RedisClientHandler()) {
     const cacheToken = 'oauth:getAccessToken';
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {

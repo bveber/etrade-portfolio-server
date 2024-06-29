@@ -1,5 +1,5 @@
 import { getAccountBalances } from '../src/routes/accountBalances';
-import RedisCache from '../src/services/redis';
+import RedisClientHandler from '../src/services/redis';
 import { getAccountList } from '../src/services/getAccountList';
 import { encrypt } from '../src/services/oauth';
 
@@ -17,7 +17,7 @@ describe('Account Balances Service', () => {
             get: jest.fn(),
             set: jest.fn(),
         };
-        RedisCache.mockImplementation(() => redisClient);
+        RedisClientHandler.mockImplementation(() => redisClient);
         const cachedData = {
             oauth_token: 'cached_token',
             encrypted_oauth_token_secret: encrypt('cached_secret')

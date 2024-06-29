@@ -21,13 +21,12 @@ async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)
 }
 
 async function getPortfolioData() {
+    const token = await getAccessTokenCache();
+    const accountList = await getAccountList();
+    if (!accountList) {
+        throw new Error('No accounts found.');
+    }
     try {
-        const token = await getAccessTokenCache();
-        const accountList = await getAccountList();
-        if (!accountList) {
-            throw new Error('No accounts found.');
-        }
-
         const accountPortfolios = await Promise.all(
             accountList.map(async (account) => {
                 const portfolio = await getAccountPortfolio(account.accountIdKey, token.key, token.secret);

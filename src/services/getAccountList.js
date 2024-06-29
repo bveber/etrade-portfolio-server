@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { oauth, baseUrl, getAccessTokenCache } from './oauth.js';
-import handleCustomError from './errorHandler.js';
 
 async function getAccountList() {
     const token = await getAccessTokenCache();
@@ -16,7 +15,7 @@ async function getAccountList() {
         const response = await axios.get(requestData.url, { headers });
         return response.data.AccountListResponse.Accounts.Account;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error fetching account list.', error);
     }
 }
 

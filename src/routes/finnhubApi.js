@@ -1,12 +1,11 @@
-import finnhub from 'finnhub';
-import RedisCache from '../services/redis.js';
+import { DefaultApi, ApiClient } from 'finnhub';
+import RedisClientHandler from '../services/redis.js';
 import { config } from 'dotenv';
 
 config();
-const redisClient = new RedisCache();
 
 // get finnhub company data
-async function getCompanyData(symbol) {
+async function getCompanyData(symbol, redisClient = new RedisClientHandler(), finnhubClient = new DefaultApi()) {
     try {
         // Check if data is in Redis
         const cacheToken = `finnhub:getCompanyData:${symbol}`;
@@ -16,14 +15,12 @@ async function getCompanyData(symbol) {
             return cachedData;
         }
 
-        const api_key = finnhub.ApiClient.instance.authentications['api_key'];
+        const api_key = ApiClient.instance.authentications['api_key'];
         api_key.apiKey = process.env.FINNHUB_API_KEY;
-        const finnhubClient = new finnhub.DefaultApi();
-
         const data = await new Promise((resolve, reject) => {
             finnhubClient.companyProfile2({ symbol: symbol }, (error, data, ) => {
                 if (error) {
-                    // console.error('Error calling Finnhub API:', error);
+                    console.error('Error calling Finnhub API:', error);
                     reject(error);
                 } else {
                     resolve(data);

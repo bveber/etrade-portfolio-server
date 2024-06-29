@@ -43,4 +43,10 @@ describe('Transactions Service', () => {
         await expect(getTransactionsData()).rejects.toThrow('Error fetching transactions data.');
     });
 
+    test('should throw error if no accounts are found', async () => {
+        getAccountList.mockResolvedValue(null);
+
+        await expect(getTransactionsData()).rejects.toThrow('No accounts found.');
+    });
+
 });

@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 // import { getRequestToken, getAccessToken, encrypt, decrypt, getAccessTokenCache } from '../src/services/oauth';
 import * as oauthServices from '../src/services/oauth';
-import RedisCache from '../src/services/redis';
+import RedisClientHandler from '../src/services/redis';
 import axios from 'axios';
 
 config();
@@ -18,7 +18,7 @@ describe('OAuth Service', () => {
             get: jest.fn(),
             set: jest.fn(),
         };
-        RedisCache.mockImplementation(() => redisClient);
+        RedisClientHandler.mockImplementation(() => redisClient);
     });
 
     afterEach(() => {
@@ -49,17 +49,19 @@ describe('OAuth Service', () => {
         });
 
         it('should throw error if request fails', async () => {
-            redisClient.get.mockResolvedValue(null);
-            axios.post.mockRejectedValue(new Error('Request failed'));
 
-            await expect(oauthServices.getRequestToken()).rejects.toThrow('Request failed');
+            redisClient.get.mockResolvedValue(null);
+            const expectedErrorMessage = 'Failed to get request token';
+            axios.post.mockRejectedValue(new Error(expectedErrorMessage));
+
+            await expect(oauthServices.getRequestToken()).rejects.toThrow(expectedErrorMessage);
         });
 
         it ('should throw error if response does not contain token', async () => {
             redisClient.get.mockResolvedValue(null);
             axios.post.mockResolvedValue({ data: 'invalid_response' });
 
-            await expect(oauthServices.getRequestToken()).rejects.toThrow('Failed to get request token');
+            await expect(oauthServices.getRequestToken()).rejects.toThrow('Request token response not properly formatted');
         });
     });
 
@@ -98,9 +100,22 @@ describe('OAuth Service', () => {
 
         it('should throw error if request fails', async () => {
             redisClient.get.mockResolvedValue(null);
-            axios.post.mockRejectedValue(new Error('Request failed'));
+            const expectedErrorMessage = 'Failed to get request token';
+            axios.post.mockRejectedValue(new Error(expectedErrorMessage));
 
-            await expect(oauthServices.getAccessToken('verifier')).rejects.toThrow('Request failed');
+            await expect(oauthServices.getAccessToken('verifier')).rejects.toThrow(expectedErrorMessage);
+        });
+
+        it('should throw error if response is not properly formatted', async () => {
+            const cachedData = {
+                oauth_token: 'cached_token',
+                encrypted_oauth_token_secret: 'cached_secret'
+            };
+            oauthServices.getRequestToken = jest.fn().mockResolvedValue(cachedData);
+            redisClient.get.mockResolvedValue(null);
+            axios.post.mockResolvedValue({ data: 'invalid_response' });
+
+            await expect(oauthServices.getAccessToken('verifier')).rejects.toThrow('Request token response not properly formatted');
         });
 
     });
