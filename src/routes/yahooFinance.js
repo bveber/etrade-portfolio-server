@@ -1,4 +1,4 @@
-import { quoteSummary } from 'yahoo-finance2';
+import yahooFinance from 'yahoo-finance2';
 import RedisClientHander from '../services/redis.js';
 
 // Get data for a stock
@@ -13,8 +13,7 @@ async function getStockData(symbol, redisClient = new RedisClientHander()) {
         }
 
         const queryOptions = { modules: ['assetProfile', 'summaryDetail', 'defaultKeyStatistics', 'financialData']  }; // defaults
-        console.log(quoteSummary);
-        const data = await quoteSummary(symbol, queryOptions);
+        const data = await yahooFinance.quoteSummary(symbol, queryOptions);
 
         // Store data in Redis
         await redisClient.set(cacheToken, data, 3600);
