@@ -42,7 +42,7 @@ describe('Yahoo Finance Service', () => {
 
         const result = await getStockData(symbol);
 
-        console.log(result)
+        console.log(result);
 
         expect(redisClient.get).toHaveBeenCalledWith(`yahooFinance:getStockData:${symbol}`);
         expect(yahooFinance.quoteSummary).toHaveBeenCalledWith(symbol, { modules: ['assetProfile', 'summaryDetail', 'defaultKeyStatistics', 'financialData'] });
