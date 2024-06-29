@@ -24,6 +24,10 @@ jobs:
       with:
         node-version: '20'
 
+    - name: Create fake .env file
+      run: |
+        echo "ENCRYPTION_KEY=${{ secrets.TEST_ENCRYPTION_KEY }}" >> .env
+
     - name: Install dependencies
       run: npm install
 
