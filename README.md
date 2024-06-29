@@ -115,17 +115,6 @@ This project is licensed under the MIT License.
 
 ## TODO
 
-- [x] Redis caching
-- Fix tests
-    - [x] redis
-    - [x] oauth
-    - [x] edgar
-    - [x] portfolio
-    - [x] accountBalances
-    - [x] transactions
-    - [x] getAccountList
-    - [ ] finnhub
-    - [ ] yahooFinance
 - Add ability to drill down into stocks
     - [x] Get company profile
     - [x] Get filings
