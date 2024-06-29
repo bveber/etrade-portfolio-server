@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles",
+    "test": "NODE_ENV=test ENCRYPTION_KEY=d2545acd34a1464332f6734240829341f99a36b894f67c901ee2535c93b1ac43 jest --coverage --detectOpenHandles",
     "lint": "eslint . --ignore-pattern \"coverage/\"",
     "lint-fix": "eslint . --fix --ignore-pattern \"coverage/\""
   },

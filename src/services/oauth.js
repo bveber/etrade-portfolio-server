@@ -9,7 +9,7 @@ config();
 const encryptionKey = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // Must be 32 bytes for AES-256
 const consumerKey = process.env.ETRADE_CONSUMER_KEY;
 const consumerSecret = process.env.ETRADE_CONSUMER_SECRET;
-const baseUrl = process.env.ETRADE_BASE_URL;
+const baseUrl = 'https://api.etrade.com';
 
 const oauth = OAuth({
     consumer: { key: consumerKey, secret: consumerSecret },
