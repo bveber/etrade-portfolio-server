@@ -1,18 +1,20 @@
 import { getTransactionsData } from '../src/routes/transactions';
-import cache from '../src/services/cache';
-
 
 import axios from 'axios';
 import { getAccountList } from '../src/services/getAccountList';
+import { getAccessTokenCache } from '../src/services/oauth';
+
 jest.mock('axios');
 jest.mock('../src/services/getAccountList');
+jest.mock('../src/services/oauth');
 
 
 describe('Transactions Service', () => {
     beforeAll(() => {
-        cache.accessToken = 'accessToken';
-        cache.accessTokenSecret = 'accessTokenSecret';
-        cache.accessTokenExpiryTime = Date.now() + 100000;
+        getAccessTokenCache.mockResolvedValue({
+            key: 'cached_token',
+            secret: 'cached_secret'
+        });
     });
 
     afterEach(() => {
@@ -28,23 +30,23 @@ describe('Transactions Service', () => {
         expect(result).toEqual([{ accountId: '123', accountName: 'Test Account', transactions: 'transactions data' }]);
     });
 
-    test('should throw error if no accounts found', async () => {
-        getAccountList.mockResolvedValue(null);
-
-        await expect(getTransactionsData()).rejects.toThrow('No accounts found.');
-    });
-
     test('should throw error if getAccountList throws error', async () => {
-        getAccountList.mockRejectedValue(new Error('Test Error'));
+        getAccountList.mockRejectedValue(new Error('Error fetching transactions data.'));
 
-        await expect(getTransactionsData()).rejects.toThrow('Test Error');
+        await expect(getTransactionsData()).rejects.toThrow('Error fetching transactions data.');
     });
 
     test('should throw error if getAccountTransactions throws error', async () => {
         getAccountList.mockResolvedValue([{ accountIdKey: '123', accountName: 'Test Account' }]);
-        axios.get.mockRejectedValue(new Error('Test Error'));
+        axios.get.mockRejectedValue(new Error('Error fetching transactions data.'));
 
-        await expect(getTransactionsData()).rejects.toThrow('Test Error');
+        await expect(getTransactionsData()).rejects.toThrow('Error fetching transactions data.');
+    });
+
+    test('should throw error if no accounts are found', async () => {
+        getAccountList.mockResolvedValue(null);
+
+        await expect(getTransactionsData()).rejects.toThrow('No accounts found.');
     });
 
 });

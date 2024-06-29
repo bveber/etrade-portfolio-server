@@ -1,40 +1,35 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl } from '../services/oauth.js';
-import cache from '../services/cache.js';
-import handleCustomError from '../services/utils.js';
+import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
 
-async function getAccountPortfolio(accountIdKey) {
+
+async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/portfolio`,
         method: 'GET',
     };
 
-    const token = { key: cache.accessToken, secret: cache.accessTokenSecret };
+    const token = { key: accessToken, secret: accessTokenSecret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
     try {
         const response = await axios.get(requestData.url, { headers });
         return response.data;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error retrieving portfolio data.', error);
     }
 }
 
 async function getPortfolioData() {
-    if (!cache.accessToken || !cache.accessTokenSecret || Date.now() > cache.accessTokenExpiryTime) {
-        throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
+    const token = await getAccessTokenCache();
+    const accountList = await getAccountList();
+    if (!accountList) {
+        throw new Error('No accounts found.');
     }
-
     try {
-        const accountList = await getAccountList();
-        if (!accountList) {
-            throw new Error('No accounts found.');
-        }
-
         const accountPortfolios = await Promise.all(
             accountList.map(async (account) => {
-                const portfolio = await getAccountPortfolio(account.accountIdKey);
+                const portfolio = await getAccountPortfolio(account.accountIdKey, token.key, token.secret);
                 return {
                     accountId: account.accountIdKey,
                     accountName: account.accountName,
@@ -45,16 +40,16 @@ async function getPortfolioData() {
 
         return accountPortfolios;
     } catch (error) {
-        handleCustomError(error);
+        throw new Error('Error fetching portfolio data.', error);
     }
 }
 
 async function flattenPortfolioData(portfolios) {
     try {
         let all_positions = [];
-        const flattenedPortfolio = portfolios.reduce((result, portfolio) => {
+        portfolios.reduce((result, portfolio) => {
             const { accountId, accountName, portfolio: portfolioData } = portfolio;
-            const flattenedPositions = portfolioData.PortfolioResponse.AccountPortfolio[0].Position.reduce((positions, position) => {
+            portfolioData.PortfolioResponse.AccountPortfolio[0].Position.reduce((_, position) => {
                 const existingPosition = all_positions.find(p => p.symbol === position.symbolDescription);
                 if (existingPosition) {
                     existingPosition.accountIds.push(accountId);
@@ -77,7 +72,7 @@ async function flattenPortfolioData(portfolios) {
         return all_positions;
     }
     catch (error) {
-        handleCustomError(error);
+        throw new Error('Error flattening portfolio data.', error);
     }
 }
 
