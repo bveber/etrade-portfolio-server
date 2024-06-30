@@ -13,6 +13,7 @@ import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
 import { getStockData } from './routes/yahooFinance.js';
 import { getCompanyData } from './routes/finnhubApi.js';
+import { getStock } from './routes/stock.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,26 +65,6 @@ app.get('/accountBalances', async (req, res) => {
     }
 });
 
-// app.get('/accountBalances', async (req, res) => {
-//     try {
-//         const data = await getAccountBalances();
-//         fs.writeFileSync('data/accountBalances.json', JSON.stringify(data, null, 2));
-//         res.json(data);
-//     } catch (error) {
-//         res.status(500).send(error.message);
-//     }
-// });
-
-// Endpoint to retrieve persisted account balances data
-app.get('/accountBalances/local', (req, res) => {
-    if (fs.existsSync('data/accountBalances.json')) {
-        const data = fs.readFileSync('data/accountBalances.json');
-        res.json(JSON.parse(data));
-    } else {
-        res.status(404).send('No local account balances data found');
-    }
-});
-
 // Endpoint to request portfolio data
 app.get('/portfolio', async (req, res) => {
     try {
@@ -92,16 +73,6 @@ app.get('/portfolio', async (req, res) => {
         res.json(data);
     } catch (error) {
         res.status(500).send(error.message);
-    }
-});
-
-// Endpoint to retrieve persisted portfolio data
-app.get('/portfolio/local', (req, res) => {
-    if (fs.existsSync('data/portfolio.json')) {
-        const data = fs.readFileSync('data/portfolio.json');
-        res.json(JSON.parse(data));
-    } else {
-        res.status(404).send('No local portfolio data found');
     }
 });
 
@@ -123,16 +94,6 @@ app.get('/portfolioFlattened', async (req, res) => {
     }
 });
 
-// Endpoint to retrieve persisted portfolio data
-app.get('/portfolioFlattened/local', (req, res) => {
-    if (fs.existsSync('data/portfolioFlattened.json')) {
-        const data = fs.readFileSync('data/portfolioFlattened.json');
-        res.json(JSON.parse(data));
-    } else {
-        res.status(404).send('No local portfolioFlattened data found');
-    }
-});
-
 // Endpoint to request transactions data
 app.get('/transactions', async (req, res) => {
     try {
@@ -141,16 +102,6 @@ app.get('/transactions', async (req, res) => {
         res.json(data);
     } catch (error) {
         res.status(500).send(error.message);
-    }
-});
-
-// Endpoint to retrieve persisted transactions data
-app.get('/transactions/local', (req, res) => {
-    if (fs.existsSync('data/transactions.json')) {
-        const data = fs.readFileSync('data/transactions.json');
-        res.json(JSON.parse(data));
-    } else {
-        res.status(404).send('No local transactions data found');
     }
 });
 
@@ -187,6 +138,15 @@ app.get('/finnhub', async (req, res) => {
     try {
         const data = await getCompanyData(ticker);
         res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Endpoint to retrieve stock data
+app.get('/stock', async (req, res) => {
+    try {
+        await getStock(req, res);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

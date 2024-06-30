@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 
-class RedisClientHandler {
+export class RedisClientHandler {
     constructor() {
         this.db = process.env.NODE_ENV === 'test' ? 1 : 0;
         this.redisOptions = {
@@ -88,4 +88,27 @@ class RedisClientHandler {
 
 }
 
-export default RedisClientHandler;
+const withCache = (keyGenerator, ttl, redisClient = new RedisClientHandler()) => (fn) => async (...args) => {
+    try {
+        const cacheKey = keyGenerator(...args);
+        const cachedValue = await redisClient.get(cacheKey);
+        console.log('Cache key:', cacheKey, 'Cached value:', cachedValue)
+        if (cachedValue) {
+            redisClient.quit();
+            return cachedValue;
+        }
+
+        const result = await fn(...args);
+        await redisClient.set(cacheKey, result, ttl); // cache for specified ttl
+        redisClient.quit();
+        return result;
+    }
+    catch (error) {
+        console.error('Error with caching:', error);
+        redisClient.quit();
+        throw error;
+    }
+};
+
+
+export default withCache;

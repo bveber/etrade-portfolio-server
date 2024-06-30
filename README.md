@@ -120,6 +120,7 @@ This project is licensed under the MIT License.
     - Get price history
     - Get news
     - [x] Get Fundamentals
+- stockPage
 - Get overall performace over time (compared to indices)
 - Create different slices of the portfolio doughnut chart by sector, industry, equity type, etc.
 - Create secret env vars for testing in GHA and for deploying to Production

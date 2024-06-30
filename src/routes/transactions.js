@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
+import { oauth, baseUrl, getDecryptedAccessToken } from '../services/oauth.js';
 
 async function getAccountTransactions(accountIdKey) {
-    const token = await getAccessTokenCache();
+    const token = await getDecryptedAccessToken();
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/transactions?count=50`,
         method: 'GET',

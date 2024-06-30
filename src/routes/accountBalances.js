@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
+import { oauth, baseUrl, getDecryptedAccessToken } from '../services/oauth.js';
+import withCache from '../services/redis.js';
 
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
-    const token = await getAccessTokenCache();
+    const token = await getDecryptedAccessToken();
     const requestData = {
         url: `${baseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
         method: 'GET',
@@ -20,7 +21,7 @@ async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE') {
 }
 
 // Function to get account balances
-async function getAccountBalances() {
+async function getAccountBalancesWithoutCache() {
     const accountList = await getAccountList();
     if (!accountList) {
         throw new Error('No accounts found.');
@@ -42,6 +43,12 @@ async function getAccountBalances() {
         throw new Error('Error fetching account balances.', error);
     }
 }
+
+//keyGenerator function
+const keyGenerator = () => 'getAccountBalances';
+
+// Export the function with caching
+const getAccountBalances = withCache(keyGenerator)(getAccountBalancesWithoutCache);
 
 export {
     getAccountBalances,

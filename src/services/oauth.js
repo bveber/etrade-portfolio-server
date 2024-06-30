@@ -1,7 +1,7 @@
 import axios from 'axios';
 import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
-import RedisClientHandler from './redis.js';
+import withCache, { RedisClientHandler } from './redis.js';
 import { config } from 'dotenv';
 
 config();
@@ -41,12 +41,7 @@ function decrypt(text) {
 }
 
 // Function to get request token
-async function getRequestToken(redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getRequestToken';
-    const cachedData = await redisClient.get(cacheToken);
-    if (cachedData) {
-        return cachedData;
-    }
+async function getRequestTokenWithoutCache() {
     console.log('Requesting new request token');
     const requestData = {
         url: `${baseUrl}/oauth/request_token`,
@@ -68,7 +63,6 @@ async function getRequestToken(redisClient = new RedisClientHandler()) {
             oauth_token,
             oauth_token_secret,
         };
-        redisClient.set(cacheToken, data, 300);
         return data;
     } catch (error) {
         // console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
@@ -76,15 +70,21 @@ async function getRequestToken(redisClient = new RedisClientHandler()) {
     }
 }
 
+// keyGenerator function
+const requestTokenKeyGenerator = () => 'oauth:getRequestToken';
+
+// Export the function with caching
+const getRequestToken = withCache(requestTokenKeyGenerator, 250)(getRequestTokenWithoutCache);
+
 // Function to get access token
-async function getAccessToken(verifier, redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getAccessToken';
-    const cachedData = await redisClient.get(cacheToken);
-    if (cachedData) {
-        const oauth_token = cachedData.oauth_token;
-        const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
-        return { oauth_token, oauth_token_secret };
-    }
+async function getAccessTokenWithoutCache(verifier) {
+    // const cacheToken = 'oauth:getAccessToken';
+    // const cachedData = await redisClient.get(cacheToken);
+    // if (cachedData) {
+    //     const oauth_token = cachedData.oauth_token;
+    //     const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
+    //     return { oauth_token, oauth_token_secret };
+    // }
     const requestTokenData = await getRequestToken();
     if (!verifier) {
         throw new Error('Verifier is missing');
@@ -115,7 +115,7 @@ async function getAccessToken(verifier, redisClient = new RedisClientHandler()) 
             'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
         };
 
-        redisClient.set(cacheToken, data, 86400);
+        // redisClient.set(cacheToken, data, 86400);
         return data;
     } catch (error) {
         console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
@@ -123,8 +123,15 @@ async function getAccessToken(verifier, redisClient = new RedisClientHandler()) 
     }
 }
 
-async function getAccessTokenCache(redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getAccessToken';
+// keyGenerator function
+const accessTokenKey = 'oauth:getAccessToken';
+const accessTokenKeyGenerator = () => accessTokenKey;
+
+// Export the function with caching
+const getAccessToken = withCache(accessTokenKeyGenerator)(getAccessTokenWithoutCache);
+
+async function getDecryptedAccessToken(redisClient = new RedisClientHandler()) {
+    const cacheToken = accessTokenKey;
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {
         throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
@@ -132,7 +139,6 @@ async function getAccessTokenCache(redisClient = new RedisClientHandler()) {
     const token = { key: cachedData.oauth_token, secret: decrypt(cachedData.encrypted_oauth_token_secret) };
     return token;
 }
-
 
 export {
     getRequestToken,
@@ -142,5 +148,5 @@ export {
     baseUrl,
     encrypt,
     decrypt,
-    getAccessTokenCache
+    getDecryptedAccessToken,
 };

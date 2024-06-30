@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { parseString as _parseString } from 'xml2js';
 import { promisify } from 'util';
+import withCache from '../services/redis.js';
 
 const parseString = promisify(_parseString);
 
@@ -19,7 +20,7 @@ async function fetchData(queryUrl) {
 }
 
 // function that fetches 10-K filings from SEC Edgar
-async function get10k(ticker) {
+const get10kWithoutCache = async function (ticker) {
     const queryUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${ticker}&type=10-K&dateb=&owner=include&count=10&output=atom`;
     const response = await fetchData(queryUrl);
 
@@ -39,7 +40,13 @@ async function get10k(ticker) {
     }));
 
     return filings;
-}
+};
+
+// Create a key generator function
+const keyGenerator = (ticker) => `edgar:${ticker}`;
+
+// Wrap the function with caching logic
+const get10k = withCache(keyGenerator)(get10kWithoutCache);
 
 export {
     get10k,

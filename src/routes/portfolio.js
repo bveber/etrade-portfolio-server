@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
+import { oauth, baseUrl, getDecryptedAccessToken } from '../services/oauth.js';
+import withCache from '../services/redis.js';
 
 
 async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
@@ -20,8 +21,9 @@ async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)
     }
 }
 
-async function getPortfolioData() {
-    const token = await getAccessTokenCache();
+const getPortfolioData = async function () {
+    const token = await getDecryptedAccessToken();
+    console.log('token:', token);
     const accountList = await getAccountList();
     if (!accountList) {
         throw new Error('No accounts found.');
@@ -42,9 +44,9 @@ async function getPortfolioData() {
     } catch (error) {
         throw new Error('Error fetching portfolio data.', error);
     }
-}
+};
 
-async function flattenPortfolioData(portfolios) {
+async function flattenPortfolioDataWithoutCache(portfolios) {
     try {
         let all_positions = [];
         portfolios.reduce((result, portfolio) => {
@@ -75,6 +77,12 @@ async function flattenPortfolioData(portfolios) {
         throw new Error('Error flattening portfolio data.', error);
     }
 }
+
+//keyGenerator function
+const flattenPortfolioKeyGenerator = () => 'etrade:portfolio:flatten';
+
+// Wrap the function with caching logic
+const flattenPortfolioData = withCache(flattenPortfolioKeyGenerator, 3600)(flattenPortfolioDataWithoutCache);
 
 export {
     getPortfolioData,
