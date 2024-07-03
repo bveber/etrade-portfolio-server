@@ -90,28 +90,18 @@ export class RedisClientHandler {
 
 // const withCache = (fn, { keyGenerator, ttl, redisClient }) => async (...args) => {
 const withCache = (keyGenerator, ttl=86400, redisClient=new RedisClientHandler()) => (fn) => async (...args) => {
-    console.log('withCache args:', args);
-    console.log('withCache keyGenerator:', keyGenerator);
-    console.log('withCache ttl:', ttl);
-    console.log('withCache redisClient:', redisClient);
     try {
         const cacheKey = keyGenerator(...args);
         const cachedValue = await redisClient.get(cacheKey);
-        console.log('withCache cacheKey:', cacheKey);
-        console.log('withCache cachedValue:', cachedValue);
         if (cachedValue) {
-            console.log('Cache hit');
             return cachedValue;
         }
 
         const result = await fn(...args);
-        console.log('Cache miss, setting cache');
         await redisClient.set(cacheKey, result, ttl); // cache for specified ttl
-        console.log('Cache set. Quitting Redis client');
         return result;
     }
     catch (error) {
-        console.log('withCache error:', error);
         throw error;
     }
 };

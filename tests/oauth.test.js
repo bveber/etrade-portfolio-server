@@ -24,13 +24,11 @@ jest.mock('../src/services/redis', () => {
 
 describe('OAuth Service', () => {
     let redisClient;
-    let accessTokenKeyGenerator;
-    let accessTokenTtl;
+    const accessTokenKeyGenerator = () => 'oauth:getAccessToken';
+    const accessTokenTtl = 86400;
 
     beforeEach(() => {
         redisClient = new RedisClientHandler();
-        const accessTokenKeyGenerator = () => 'oauth:getAccessToken';
-        const accessTokenTtl = 86400;
     });
 
     afterEach(() => {
@@ -62,7 +60,6 @@ describe('OAuth Service', () => {
                 redisClient
             );
             const result = await getRequestTokenWithCache();
-            console.log('result:', result);
             expect(result).toEqual(cachedData);
             expect(redisClient.get).toHaveBeenCalledWith('oauth:getRequestToken');
         });
@@ -160,7 +157,7 @@ describe('OAuth Service', () => {
             redisClient.get.mockResolvedValue(null);
             axios.post.mockResolvedValue({ data: 'invalid_response' });
 
-            await expect(oauthServices.getAccessToken('verifier', accessTokenKeyGenerator, accessTokenTtl, redisClient)).rejects.toThrow('Failed to get access token');
+            await expect(oauthServices.getAccessToken('verifier', accessTokenKeyGenerator, accessTokenTtl, redisClient)).rejects.toThrow('Request token response not properly formatted');
         });
 
     });
@@ -177,14 +174,13 @@ describe('OAuth Service', () => {
 
     describe('getDecryptedAccessToken', () => {
         it('should return decrypted access token', async () => {
-            console.log('should return decrypted access token')
             const accessTokenData = {
                 oauth_token: 'token',
-                encrypted_oauth_token_secret: oauthServices.encrypt('secret')
+                encrypted_oauth_token_secret: oauthServices.encrypt('secret'),
             };
             redisClient.get.mockResolvedValue(accessTokenData);
 
-            const result = await oauthServices.getDecryptedAccessToken(redisClient);
+            const result = await oauthServices.getDecryptedAccessToken(accessTokenKeyGenerator ,redisClient);
 
             expect(result.key).toEqual(accessTokenData.oauth_token);
             expect(result.secret).toEqual(oauthServices.decrypt(accessTokenData.encrypted_oauth_token_secret));

@@ -222,7 +222,6 @@ describe('withCache', () => {
     it('should cache the result of a function with a default TTL', async () => {
         const key = 'testKey';
         const value = { 'key': 'testValue' };
-        const ttl = 250; // 4 minutes 10 seconds
         const keyGenerator = () => key;
         const fn = () => value;
         const setSpy = jest.spyOn(redisClient, 'set');
@@ -262,7 +261,6 @@ describe('withCache', () => {
     });
 
     it('should get the value from cache if available', async () => {
-        console.log('should get the value from cache if available')
         const key = 'testKey';
         const value = { 'key': 'testValue' };
         const newRedisClient = new RedisClientHandler();

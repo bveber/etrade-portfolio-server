@@ -42,7 +42,6 @@ function decrypt(text) {
 
 // Function to get request token
 async function getRequestTokenWithoutCache() {
-    console.log('Requesting new request token');
     const requestData = {
         url: `${baseUrl}/oauth/request_token`,
         method: 'POST',
@@ -74,14 +73,13 @@ async function getRequestTokenWithoutCache() {
 // Export the function with caching
 const getRequestToken = (
     keyGenerator,
-    ttl, 
+    ttl,
     redisClient
 ) => withCache(keyGenerator, ttl, redisClient)(getRequestTokenWithoutCache);
 
 // Function to get access token
 async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClientHandler()) {
     const requestTokenData = await getRequestToken(() => 'oauth:getRequestToken', 250, redisClient)();
-    console.log('getAccessToken requestTokenData:', requestTokenData);
     if (!verifier) {
         throw new Error('Verifier is missing');
     }
@@ -90,11 +88,8 @@ async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClien
         method: 'POST',
         data: { oauth_verifier: verifier },
     };
-    console.log('getAccessToken requestData:', requestData);
     const token = { key: requestTokenData.oauth_token, secret: requestTokenData.oauth_token_secret };
-    console.log('getAccessToken token:', token);
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
-    console.log('getAccessToken headers:', headers);
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers.oauth_verifier = verifier;
 
@@ -119,11 +114,11 @@ async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClien
 const getAccessToken = (
     verifier,
     keyGenerator,
-    ttl, 
+    ttl,
     redisClient
 ) => withCache(keyGenerator, ttl, redisClient)(getAccessTokenWithoutCache)(verifier, redisClient);
 
-async function getDecryptedAccessToken(redisClient = new RedisClientHandler()) {
+async function getDecryptedAccessToken(accessTokenKey ='oauth:getAccessToken', redisClient = new RedisClientHandler()) {
     const cacheToken = accessTokenKey;
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {
