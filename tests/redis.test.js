@@ -143,8 +143,8 @@ describe('RedisClientHandler', () => {
     it('should handle errors when clearing all keys in Redis', async () => {
         const errorMessage = 'Error clearing all keys in Redis';
         let newRedisClient = new RedisClientHandler();
+
         // Mock the Redis flushDb method to throw an error
-        // RedisClientHander.client.flushDb = jest.fn(() => { throw new Error(errorMessage); });
         const flushDbMock = jest.fn().mockRejectedValue(new Error(errorMessage));
         newRedisClient.client.flushDb = flushDbMock;
 
@@ -182,7 +182,6 @@ describe('RedisClientHandler', () => {
         await expect(newRedisClient.connect()).rejects.toThrow(errorMessage);
 
         // Reset the mock
-        // newRedisClient.client.connect.mockRestore();
         await newRedisClient.quit();
     });
 
@@ -193,7 +192,6 @@ describe('withCache', () => {
 
     beforeEach(async () => {
         redisClient = new RedisClientHandler();
-        // await redisClient.connect();
     });
 
     afterEach(async () => {
@@ -209,7 +207,7 @@ describe('withCache', () => {
         const keyGenerator = () => key;
         const fn = () => value;
 
-        const cachedFn = withCache(keyGenerator, ttl)(fn);
+        const cachedFn = withCache(keyGenerator, ttl, redisClient)(fn);
 
         // Call the function
         const result = await cachedFn();
@@ -227,8 +225,9 @@ describe('withCache', () => {
         const ttl = 250; // 4 minutes 10 seconds
         const keyGenerator = () => key;
         const fn = () => value;
+        const setSpy = jest.spyOn(redisClient, 'set');
 
-        const cachedFn = withCache(keyGenerator)(fn);
+        const cachedFn = withCache(keyGenerator, undefined, redisClient)(fn);
 
         // Call the function
         const result = await cachedFn();
@@ -238,6 +237,7 @@ describe('withCache', () => {
 
         expect(result).toEqual(value);
         expect(cachedValue).toEqual(value);
+        expect(setSpy).toHaveBeenCalledWith(key, value, 86400);
     });
 
     it('should cache the result of a function with a custom TTL', async () => {
@@ -246,8 +246,9 @@ describe('withCache', () => {
         const ttl = 60; // 1 minute
         const keyGenerator = () => key;
         const fn = () => value;
+        const setSpy = jest.spyOn(redisClient, 'set');
 
-        const cachedFn = withCache(keyGenerator, ttl)(fn);
+        const cachedFn = withCache(keyGenerator, ttl, redisClient)(fn);
 
         // Call the function
         const result = await cachedFn();
@@ -257,6 +258,7 @@ describe('withCache', () => {
 
         expect(result).toEqual(value);
         expect(cachedValue).toEqual(value);
+        expect(setSpy).toHaveBeenCalledWith(key, value, ttl);
     });
 
     it('should get the value from cache if available', async () => {
@@ -265,13 +267,10 @@ describe('withCache', () => {
         const value = { 'key': 'testValue' };
         const newRedisClient = new RedisClientHandler();
         await newRedisClient.set(key, value);
-        // RedisClientHandler.mockImplementation(() => redisClient);
         const keyGenerator = () => key;
         const fn = jest.fn(() => value);
 
-        // const result = withCache(keyGenerator)(fn);
-        // console.log('Result:', result);
-        const cachedFn = withCache(keyGenerator)(fn);
+        const cachedFn = withCache(keyGenerator, undefined, redisClient)(fn);
 
         const result = await cachedFn();
         expect(result).toEqual(value);
@@ -283,7 +282,7 @@ describe('withCache', () => {
         const errorMessage = 'Error getting value from Redis';
         const keyGenerator = () => key;
         const fn = () => { throw new Error(errorMessage); };
-        const cachedFn = withCache(keyGenerator)(fn);
+        const cachedFn = withCache(keyGenerator, undefined, redisClient)(fn);
 
         // Call the function
         await expect(cachedFn()).rejects.toThrow(errorMessage);

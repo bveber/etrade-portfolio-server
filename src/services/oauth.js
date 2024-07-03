@@ -50,53 +50,51 @@ async function getRequestTokenWithoutCache() {
     };
 
     const headers = oauth.toHeader(oauth.authorize(requestData));
-    const response = await axios.post(requestData.url, {}, { headers });
+    let response;
+    try {
+        response = await axios.post(requestData.url, {}, { headers });
+    } catch (error) {
+        throw error;
+    }
+    // const response = await axios.post(requestData.url, {}, { headers });
     const responseData = new URLSearchParams(response.data);
     if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
         throw new Error('Request token response not properly formatted');
     }
 
-    try {
-        const oauth_token = responseData.get('oauth_token');
-        const oauth_token_secret = responseData.get('oauth_token_secret');
-        const data = {
-            oauth_token,
-            oauth_token_secret,
-        };
-        return data;
-    } catch (error) {
-        // console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
-        throw new Error('Failed to get request token', error);
-    }
+    const oauth_token = responseData.get('oauth_token');
+    const oauth_token_secret = responseData.get('oauth_token_secret');
+    const data = {
+        oauth_token,
+        oauth_token_secret,
+    };
+    return data;
 }
 
-// keyGenerator function
-const requestTokenKeyGenerator = () => 'oauth:getRequestToken';
-
 // Export the function with caching
-const getRequestToken = withCache(requestTokenKeyGenerator, 250)(getRequestTokenWithoutCache);
+const getRequestToken = (
+    keyGenerator,
+    ttl, 
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getRequestTokenWithoutCache);
 
 // Function to get access token
-async function getAccessTokenWithoutCache(verifier) {
-    // const cacheToken = 'oauth:getAccessToken';
-    // const cachedData = await redisClient.get(cacheToken);
-    // if (cachedData) {
-    //     const oauth_token = cachedData.oauth_token;
-    //     const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
-    //     return { oauth_token, oauth_token_secret };
-    // }
-    const requestTokenData = await getRequestToken();
+async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClientHandler()) {
+    const requestTokenData = await getRequestToken(() => 'oauth:getRequestToken', 250, redisClient)();
+    console.log('getAccessToken requestTokenData:', requestTokenData);
     if (!verifier) {
         throw new Error('Verifier is missing');
     }
-    console.log('Requesting new access token');
     const requestData = {
         url: `${baseUrl}/oauth/access_token`,
         method: 'POST',
         data: { oauth_verifier: verifier },
     };
+    console.log('getAccessToken requestData:', requestData);
     const token = { key: requestTokenData.oauth_token, secret: requestTokenData.oauth_token_secret };
+    console.log('getAccessToken token:', token);
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
+    console.log('getAccessToken headers:', headers);
     headers['Content-Type'] = 'application/x-www-form-urlencoded';
     headers.oauth_verifier = verifier;
 
@@ -106,29 +104,24 @@ async function getAccessTokenWithoutCache(verifier) {
         throw new Error('Failed to get access token');
     }
 
-    try {
-        const accessToken = responseData.get('oauth_token');
-        const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
+    const accessToken = responseData.get('oauth_token');
+    const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
 
-        const data = {
-            'oauth_token': accessToken,
-            'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
-        };
+    const data = {
+        'oauth_token': accessToken,
+        'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
+    };
 
-        // redisClient.set(cacheToken, data, 86400);
-        return data;
-    } catch (error) {
-        console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
-        throw error;
-    }
+    return data;
 }
 
-// keyGenerator function
-const accessTokenKey = 'oauth:getAccessToken';
-const accessTokenKeyGenerator = () => accessTokenKey;
-
 // Export the function with caching
-const getAccessToken = withCache(accessTokenKeyGenerator)(getAccessTokenWithoutCache);
+const getAccessToken = (
+    verifier,
+    keyGenerator,
+    ttl, 
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getAccessTokenWithoutCache)(verifier, redisClient);
 
 async function getDecryptedAccessToken(redisClient = new RedisClientHandler()) {
     const cacheToken = accessTokenKey;
@@ -142,6 +135,7 @@ async function getDecryptedAccessToken(redisClient = new RedisClientHandler()) {
 
 export {
     getRequestToken,
+    getRequestTokenWithoutCache,
     getAccessToken,
     oauth,
     consumerKey,

@@ -14,6 +14,7 @@ import { get10k } from './routes/edgar.js';
 import { getStockData } from './routes/yahooFinance.js';
 import { getCompanyData } from './routes/finnhubApi.js';
 import { getStock } from './routes/stock.js';
+import { RedisClientHandler } from './services/redis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +28,15 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // Endpoint to start the authorization process
 app.get('/authorize', async (req, res) => {
     try {
-        const requestTokenData = await getRequestToken();
+        // TODO: Move these generator and TTL values to a config file
+        // keyGenerator function
+        const requestTokenKeyGenerator = () => 'oauth:getRequestToken';
+
+        // Request token ttl
+        const requestTokenTtl = 250;
+        const redisClient = new RedisClientHandler();
+        const cachedRequestToken = getRequestToken(requestTokenKeyGenerator, requestTokenTtl, redisClient);
+        const requestTokenData = await cachedRequestToken();
         const authorizeUrl = `https://us.etrade.com/e/t/etws/authorize?key=${consumerKey}&token=${requestTokenData.oauth_token}`;
         res.send(`<a href="${authorizeUrl}" target="_blank">Please authorize your application by clicking here</a>`);
     } catch (error) {
@@ -38,11 +47,11 @@ app.get('/authorize', async (req, res) => {
 // Endpoint to handle the verifier and get the access token
 app.get('/callback', async (req, res) => {
     try {
-        // if (!cache.requestToken || !cache.requestTokenSecret || Date.now() > cache.requestTokenExpiryTime) {
-        //     await getRequestToken();
-        // }
         const oauth_verifier = req.query.oauth_verifier;
-        await getAccessToken(oauth_verifier);
+        const accessTokenKeyGenerator = () => 'oauth:getAccessToken';
+        const accessTokenTtl = 86400;
+        const redisClient = new RedisClientHandler();
+        await getAccessToken(oauth_verifier, accessTokenKeyGenerator, accessTokenTtl, redisClient);
         res.send('Access Token obtained successfully. You can now use the API.');
     } catch (error) {
         res.status(500).send(error.message);
