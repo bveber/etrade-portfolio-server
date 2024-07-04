@@ -52,3 +52,36 @@ export async function getTokenAndAccountList(redisClient) {
     };
 }
 
+export class RateLimiter {
+    constructor(maxCallsPerSecond) {
+        this.queue = [];
+        this.maxCallsPerSecond = maxCallsPerSecond;
+        this.interval = 1000 / maxCallsPerSecond;
+        this.isProcessing = false;
+    }
+
+    async processQueue() {
+        if (this.isProcessing) return;
+        this.isProcessing = true;
+
+        while (this.queue.length > 0) {
+            const { fn, args, resolve, reject } = this.queue.shift();
+            try {
+                const result = await fn(...args);
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+            await new Promise((r) => setTimeout(r, this.interval));
+        }
+
+        this.isProcessing = false;
+    }
+
+    call(fn, ...args) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ fn, args, resolve, reject });
+            this.processQueue();
+        });
+    }
+}
