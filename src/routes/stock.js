@@ -34,7 +34,6 @@ export async function getStock(ticker, redisClient) {
             finnhub: finnhubData,
             filings: filings,
         };
-        console.log('got stock data for :', ticker);
         return returnData;
     } catch (error) {
         throw error;
