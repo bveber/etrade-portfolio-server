@@ -9,6 +9,17 @@
 </head>
 <body>
     <canvas id="portfolioChart" width="400" height="200"></canvas>
+    <div id="aggregationKeyContainer">
+        <label for="aggregationKey">Aggregate by:</label>
+        <select id="aggregationKey">
+            <option value="symbol">Stock Ticker</option>
+            <option value="yfIndustry">Yahoo Finance Industry</option>
+            <option value="yfSector">Yahoo Finance Sector</option>
+            <option value="finnhubIndustry">Finnhub Industry</option>
+        </select>
+        <canvas id="portfolioChart" width="400" height="200"></canvas>
+    </div>
+    <div id="chart-tooltip" style="position: absolute; opacity: 0; pointer-events: none; background: rgba(0, 0, 0, 0.7); color: white; border-radius: 3px; padding: 5px; transition: opacity 0.2s;"></div>
     <style>
         body {
             display: flex;
@@ -19,12 +30,19 @@
             font-family: Arial, sans-serif;
         }
         #chart-container {
+            position: relative;
             width: 400px;
             height: 400px;
         }
         canvas {
             width: 100% !important;
             height: 100% !important;
+        }
+        #aggregationKeyContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
         }
     </style>
     <script>
@@ -52,21 +70,65 @@
             return color;
         }
 
+        let chartInstance;
+
         // Function to fetch portfolio data
-        async function fetchPortfolioFlattened() {
-            const response = await fetch('/portfolioFlattened');
+        async function fetchEnrichedPortfolioData() {
+            const response = await fetch('/enrichedPortfolio');
             return await response.json();
         }
 
+        function aggregateData(data, key) {
+            const aggregated = {};
+            data.forEach(stock => {
+                let value;
+                if (key === 'symbol') {
+                    value = stock.symbol;
+                } else if (key === 'yfIndustry') {
+                    value = stock.stockData?.yahooFinance?.assetProfile?.industry || 'unknown';
+                } else if (key == 'yfSector') {
+                    value = stock.stockData?.yahooFinance?.assetProfile?.sector || 'unknown';
+                } else if (key == 'finnhubIndustry') {
+                    value = stock.stockData?.finnhub?.finnhubIndustry || 'unknown';
+                } else {
+                    throw new Error(`Invalid aggregation key: ${key}`);
+                }
+                if (!aggregated[value]) {
+                    aggregated[value] = { marketValue: 0, tickers: [], logos: [] };
+                }
+                aggregated[value].marketValue += stock.marketValue;
+                aggregated[value].tickers.push(stock.symbol);
+                if (stock.stockData?.finnhub?.logo) {
+                   aggregated[value].logos.push(stock.stockData.finnhub.logo);
+                }
+            });
+            // Convert the aggregated object to an array and sort by market value
+            const sortedAggregatedArray = Object.entries(aggregated).sort((a, b) => b[1].marketValue - a[1].marketValue);
+
+            // Convert the sorted array back to an object
+            const sortedAggregated = {};
+            sortedAggregatedArray.forEach(([key, value]) => {
+                sortedAggregated[key] = value;
+            });
+
+            return sortedAggregated;
+        }
+
         // Function to create chart
-        function createChart(data) {
+        function createChart(data, key) {
             const ctx = document.getElementById('portfolioChart').getContext('2d');
 
-            const labels = data.map(stock => stock.symbol);
-            const marketValue = data.map(stock => stock.marketValue);
+            // Destroy existing chart instance if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const aggregatedData = aggregateData(data, key);
+            const labels = Object.keys(aggregatedData);
+            const marketValue = Object.values(aggregatedData).map(value => value.marketValue);
             const backgroundColors = data.map(stock => stringToColor(stock.symbol));
 
-            new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -82,34 +144,74 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // Allow manual control of dimensions
+                    maintainAspectRatio: false,
                     plugins: {
                         tooltip: {
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    const dataset = tooltipItem.dataset;
-                                    const total = dataset.data.reduce((a, b) => a + b, 0);
-                                    const currentValue = dataset.data[tooltipItem.dataIndex].toFixed(0);
-                                    const percentage = ((currentValue / total) * 100).toFixed(2);
-                                    return `${tooltipItem.label}: $${currentValue.toLocaleString()} (${percentage}%)`;
+                            enabled: false,
+                            external: function(context) {
+                                // Tooltip Element
+                                let tooltipEl = document.getElementById('chart-tooltip');
+
+                                // Hide if no tooltip
+                                const tooltipModel = context.tooltip;
+                                if (tooltipModel.opacity === 0) {
+                                    tooltipEl.style.opacity = 0;
+                                    return;
                                 }
+
+                                // Set Text
+                                if (tooltipModel.body) {
+                                    const label = tooltipModel.dataPoints[0].label;
+                                    const value = tooltipModel.dataPoints[0].formattedValue;
+                                    const tickers = aggregatedData[label].tickers.join(', ');
+                                    const logos = aggregatedData[label].logos.map(logo => `<img src="${logo}" alt="${label} logo" style="width:20px;height:20px;margin-right:5px;">`).join(' ');
+
+                                    const innerHtml = `
+                                        <div>
+                                            <strong>${label}</strong><br>
+                                            ${value}<br>
+                                            Tickers: ${tickers}<br>
+                                            ${logos}
+                                        </div>
+                                    `;
+
+                                    tooltipEl.innerHTML = innerHtml;
+                                }
+
+                                // Display, position, and set styles for font
+                                const position = context.chart.canvas.getBoundingClientRect();
+                                tooltipEl.style.opacity = 1;
+                                tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+                                tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+                                tooltipEl.style.fontFamily = tooltipModel.options.bodyFont.family;
+                                tooltipEl.style.fontSize = tooltipModel.options.bodyFont.size + 'px';
+                                tooltipEl.style.fontStyle = tooltipModel.options.bodyFont.style;
+                                tooltipEl.style.padding = tooltipModel.options.padding + 'px ' + tooltipModel.options.padding + 'px';
                             }
                         },
                         legend: {
-                            display: false // This line removes the legend
+                            display: false
                         },
                         title: {
                             display: true,
                             text: 'Asset Allocation'
                         }
-                    }
-                },
-            });
-        }
+                }
+            },
+        });
+    }
 
         async function init() {
-            const portfolioFlattened = await fetchPortfolioFlattened();
-            createChart(portfolioFlattened);
+            const enrichedPortfolioData = await fetchEnrichedPortfolioData();
+            const aggregationKeyElement = document.getElementById('aggregationKey');
+
+            aggregationKeyElement.addEventListener('change', () => {
+                const key = aggregationKeyElement.value;
+                createChart(enrichedPortfolioData, key);
+            });
+
+            // Initial chart creation with default aggregation key
+            createChart(enrichedPortfolioData, aggregationKeyElement.value);
         }
 
         window.onload = init;

@@ -4,7 +4,6 @@ import withCache from './redis.js';
 import { etradeBaseUrl } from './utils.js';
 
 async function getAccountListWithoutCache(token) {
-
     const requestData = {
         url: `${etradeBaseUrl}/v1/accounts/list`,
         method: 'GET',

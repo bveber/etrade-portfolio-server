@@ -6,7 +6,7 @@ import {
     getAccessToken,
     consumerKey,
 } from './services/oauth.js';
-import { getPortfolioData, flattenPortfolioData } from './routes/portfolio.js';
+import { getPortfolioData, flattenPortfolioData, enrichPortfolioData } from './routes/portfolio.js';
 import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
@@ -98,6 +98,20 @@ app.get('/portfolioFlattened', async (req, res) => {
     }
 });
 
+// Endpoint to get enriched portfolio data
+app.get('/enrichedPortfolio', async (req, res) => {
+    try {
+        const redisClient = new RedisClientHandler();
+        const { token, accountList } = await utils.getTokenAndAccountList(redisClient);
+        const portfolio = await getPortfolioData(accountList, token, utils.getPortfolioDataKeyGenerator, utils.getPortfolioDataTtl, redisClient);
+        const flattenedPortfolioData = await flattenPortfolioData(portfolio);
+        const enrichedData = await enrichPortfolioData(flattenedPortfolioData);
+        res.json(enrichedData);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
 // Endpoint to request transactions data
 app.get('/transactions', async (req, res) => {
     try {
@@ -155,7 +169,9 @@ app.get('/finnhub', async (req, res) => {
 app.get('/stock', async (req, res) => {
     try {
         const redisClient = new RedisClientHandler();
-        await getStock(req, res, redisClient);
+        const { ticker } = req.query;
+        const data = await getStock(ticker, redisClient);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

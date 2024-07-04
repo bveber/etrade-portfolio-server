@@ -3,20 +3,39 @@ import { getStockData } from './yahooFinance.js';
 import { get10k } from './edgar.js';
 import * as utils from '../services/utils.js';
 
-export async function getStock(req, res, redisClient) {
-    const { ticker } = req.query;
+export async function getStock(ticker, redisClient) {
     try {
-        const yahooFinanceData = await getStockData(ticker, utils.yahooFinanceKeyGenerator, utils.yahooFinanceTtl, redisClient);
-        const finnhubData = await getCompanyData(ticker, utils.finnhubApiKeyGenerator, utils.finnhubApiTtl, redisClient);
-        const filings = await get10k(ticker, utils.edgarKeyGenerator, utils.edgarTtl, redisClient);
+        let yahooFinanceData;
+        try {
+            yahooFinanceData = await getStockData(ticker, utils.yahooFinanceKeyGenerator, utils.yahooFinanceTtl, redisClient);
+        } catch (error) {
+            console.error('Error fetching Yahoo Finance data for ticker: ',ticker, error);
+            yahooFinanceData = null;
+        }
+
+        let finnhubData;
+        try {
+            finnhubData = await getCompanyData(ticker, utils.finnhubApiKeyGenerator, utils.finnhubApiTtl, redisClient);
+        } catch (error) {
+            console.error('Error fetching Finnhub data for ticker: ', ticker, error);
+            finnhubData = null;
+        }
+
+        let filings;
+        try {
+            filings = await get10k(ticker, utils.edgarKeyGenerator, utils.edgarTtl, redisClient);
+        } catch (error) {
+            console.error('Error fetching 10-K data for ticker: ', ticker, error);
+            filings = null;
+        }
+
         const returnData = {
             yahooFinance: yahooFinanceData,
             finnhub: finnhubData,
             filings: filings,
         };
-        res.json(returnData);
         return returnData;
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        throw error;
     }
 }

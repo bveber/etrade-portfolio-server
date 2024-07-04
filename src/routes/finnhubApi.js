@@ -1,6 +1,7 @@
 import { DefaultApi, ApiClient } from 'finnhub';
 import withCache from '../services/redis.js';
 import { config } from 'dotenv';
+import { RateLimiter } from '../services/utils.js';
 
 config();
 
@@ -26,12 +27,15 @@ async function getCompanyDataWithoutCache(ticker, finnhubClient = new DefaultApi
 }
 
 // Export the function with caching
+const rateLimiter = new RateLimiter(25);
+
 const getCompanyData = (
     ticker,
     keyGenerator,
     ttl,
     redisClient
-) => withCache(keyGenerator, ttl, redisClient)(getCompanyDataWithoutCache)(ticker);
+) => rateLimiter.call(withCache(keyGenerator, ttl, redisClient)(getCompanyDataWithoutCache), ticker);
+
 
 export {
     getCompanyData,
