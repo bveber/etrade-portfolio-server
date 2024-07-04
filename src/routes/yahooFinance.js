@@ -1,28 +1,20 @@
 import yahooFinance from 'yahoo-finance2';
-import RedisClientHander from '../services/redis.js';
+import withCache from '../services/redis.js';
 
 // Get data for a stock
-async function getStockData(symbol, redisClient = new RedisClientHander()) {
+const getStockDataWithoutCache = async function (ticker) {
     try {
-        // Check if data is in Redis
-        const cacheToken = `yahooFinance:getStockData:${symbol}`;
-        const cachedData = await redisClient.get(cacheToken);
-
-        if (cachedData) {
-            return cachedData;
-        }
-
         const queryOptions = { modules: ['assetProfile', 'summaryDetail', 'defaultKeyStatistics', 'financialData']  }; // defaults
-        const data = await yahooFinance.quoteSummary(symbol, queryOptions);
-
-        // Store data in Redis
-        await redisClient.set(cacheToken, data, 3600);
+        const data = await yahooFinance.quoteSummary(ticker, queryOptions);
 
         return data;
     } catch (error) {
-        throw new Error(`Error fetching data for ${symbol}: ${error.message}`);
+        throw new Error(`Error fetching data for ${ticker}: ${error.message}`);
     }
-}
+};
+
+// Export the function with caching
+const getStockData = (ticker, keyGenerator, ttl, redisClient) => withCache(keyGenerator, ttl, redisClient)(getStockDataWithoutCache)(ticker);
 
 export {
     getStockData,

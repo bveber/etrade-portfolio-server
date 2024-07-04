@@ -1,18 +1,40 @@
 import { getPortfolioData, flattenPortfolioData } from '../src/routes/portfolio';
-import { getAccountList } from '../src/services/getAccountList';
-import { getAccessTokenCache } from '../src/services/oauth';
+import { oauth } from '../src/services/oauth';
+import { getPortfolioDataKeyGenerator, getPortfolioDataTtl } from '../src/services/utils';
 import axios from 'axios';
 
+
 jest.mock('axios');
-jest.mock('../src/services/getAccountList');
-jest.mock('../src/services/oauth');
+jest.mock('../src/services/oauth', () => ({
+    oauth: {
+        toHeader: jest.fn(),
+        authorize: jest.fn(),
+    },
+    getDecryptedAccessToken: jest.fn(),
+}));
 
 describe('Portfolio Service', () => {
+    let redisClient;
+    let calledWithHeaders;
+    let token;
 
     beforeAll(() => {
-        getAccessTokenCache.mockResolvedValue({
+        redisClient = {
+            get: jest.fn(),
+            set: jest.fn(),
+            quit: jest.fn(),
+        };
+
+        token = {
             key: 'cached_token',
             secret: 'cached_secret'
+        };
+
+        oauth.toHeader.mockReturnValue(calledWithHeaders);
+
+        oauth.authorize.mockReturnValue({
+            oauth_token: 'oauth_token',
+            oauth_token_secret: 'oauth_token_secret',
         });
     });
 
@@ -21,72 +43,84 @@ describe('Portfolio Service', () => {
     });
 
     describe('getPortfolioData', () => {
-        it('should handle error when getting account list', async () => {
-            const error = new Error('Error fetching portfolio data.');
-            getAccountList.mockRejectedValue(error);
-
-            await expect(getPortfolioData()).rejects.toThrow(error);
-        });
 
         it('should handle error when no accounts are found', async () => {
-            getAccountList.mockResolvedValue(null);
+            const accountList = null;
 
-            await expect(getPortfolioData()).rejects.toThrow('No accounts found.');
+            await expect(
+                getPortfolioData(
+                    accountList,
+                    token,
+                    getPortfolioDataKeyGenerator,
+                    getPortfolioDataTtl,
+                    redisClient
+                )
+            ).rejects.toThrow('No accounts found.');
         });
 
         it('should handle error when getting account portfolio', async () => {
-            getAccountList.mockResolvedValue([
+            const accountList = [
                 { accountIdKey: '123', accountName: 'Test Account' }
-            ]);
+            ];
 
-            const error = new Error('Error fetching portfolio data.');
+            const error = new Error('Error fetching account portfolio.');
             axios.get.mockRejectedValue(error);
 
-            await expect(getPortfolioData()).rejects.toThrow(error);
+            await expect(
+                getPortfolioData(
+                    accountList,
+                    token,
+                    getPortfolioDataKeyGenerator,
+                    getPortfolioDataTtl,
+                    redisClient
+                )
+            ).rejects.toThrow(error);
         });
 
         it('should return portfolio data for accounts', async () => {
-            getAccountList.mockResolvedValue([
+            const accountList = [
                 { accountIdKey: '123', accountName: 'Test Account' }
-            ]);
+            ];
 
+            const portfolioResponse = { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } };
             axios.get.mockResolvedValue({
-                data: { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } }
+                data: portfolioResponse
             });
 
-            const result = await getPortfolioData();
+            const result = await getPortfolioData(accountList, token, getPortfolioDataKeyGenerator, getPortfolioDataTtl, redisClient);
 
             expect(result).toEqual([
                 {
-                    accountId: '123',
-                    accountName: 'Test Account',
-                    portfolio: { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } }
+                    accountId: accountList[0].accountIdKey,
+                    accountName: accountList[0].accountName,
+                    portfolio: portfolioResponse
                 }
             ]);
         });
 
         it('should return portfolio data for multiple accounts', async () => {
-            getAccountList.mockResolvedValue([
+            const accountList = [
                 { accountIdKey: '123', accountName: 'Test Account' },
                 { accountIdKey: '456', accountName: 'Test Account 2' }
-            ]);
+            ];
 
+            const portfolioResponse = { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } };
             axios.get.mockResolvedValue({
-                data: { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } }
+                data: portfolioResponse
             });
 
-            const result = await getPortfolioData();
+            const result = await getPortfolioData(accountList, token, getPortfolioDataKeyGenerator, getPortfolioDataTtl, redisClient);
 
             expect(result).toEqual([
                 {
-                    accountId: '123',
-                    accountName: 'Test Account',
-                    portfolio: { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } }
+                    accountId: accountList[0].accountIdKey,
+                    accountName: accountList[0].accountName,
+                    portfolio: portfolioResponse
                 },
                 {
-                    accountId: '456',
-                    accountName: 'Test Account 2',
-                    portfolio: { PortfolioResponse: { AccountPortfolio: [{ Position: [] }] } }
+                    accountId: accountList[1].accountIdKey,
+                    accountName: accountList[1].accountName,
+                    portfolio: portfolioResponse
                 }
             ]);
         });
@@ -207,8 +241,6 @@ describe('Portfolio Service', () => {
             ];
 
             const result = await flattenPortfolioData(portfolios);
-            console.log('result', result);
-            console.log('expectedResult', expectedResult);
             expect(result).toEqual(expectedResult);
         });
 
@@ -269,7 +301,6 @@ describe('Portfolio Service', () => {
             ];
 
             const result = await flattenPortfolioData(portfolios);
-            console.log('portfolio test result ', result);
 
             expect(result).toEqual([
                 {

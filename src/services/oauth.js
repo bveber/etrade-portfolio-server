@@ -1,15 +1,15 @@
 import axios from 'axios';
 import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
-import RedisClientHandler from './redis.js';
+import withCache from './redis.js';
 import { config } from 'dotenv';
+import { etradeBaseUrl } from './utils.js';
 
 config();
 
 const encryptionKey = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // Must be 32 bytes for AES-256
 const consumerKey = process.env.ETRADE_CONSUMER_KEY;
 const consumerSecret = process.env.ETRADE_CONSUMER_SECRET;
-const baseUrl = 'https://api.etrade.com';
 
 const oauth = OAuth({
     consumer: { key: consumerKey, secret: consumerSecret },
@@ -41,57 +41,49 @@ function decrypt(text) {
 }
 
 // Function to get request token
-async function getRequestToken(redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getRequestToken';
-    const cachedData = await redisClient.get(cacheToken);
-    if (cachedData) {
-        return cachedData;
-    }
-    console.log('Requesting new request token');
+async function getRequestTokenWithoutCache() {
     const requestData = {
-        url: `${baseUrl}/oauth/request_token`,
+        url: `${etradeBaseUrl}/oauth/request_token`,
         method: 'POST',
         data: { oauth_callback: 'oob' },
     };
 
     const headers = oauth.toHeader(oauth.authorize(requestData));
-    const response = await axios.post(requestData.url, {}, { headers });
+    let response;
+    try {
+        response = await axios.post(requestData.url, {}, { headers });
+    } catch (error) {
+        throw error;
+    }
     const responseData = new URLSearchParams(response.data);
     if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
         throw new Error('Request token response not properly formatted');
     }
 
-    try {
-        const oauth_token = responseData.get('oauth_token');
-        const oauth_token_secret = responseData.get('oauth_token_secret');
-        const data = {
-            oauth_token,
-            oauth_token_secret,
-        };
-        redisClient.set(cacheToken, data, 300);
-        return data;
-    } catch (error) {
-        // console.error('Error obtaining request token:', error.response ? error.response.data : error.message);
-        throw new Error('Failed to get request token', error);
-    }
+    const oauth_token = responseData.get('oauth_token');
+    const oauth_token_secret = responseData.get('oauth_token_secret');
+    const data = {
+        oauth_token,
+        oauth_token_secret,
+    };
+    return data;
 }
 
+// Export the function with caching
+const getRequestToken = (
+    keyGenerator,
+    ttl,
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getRequestTokenWithoutCache)();
+
 // Function to get access token
-async function getAccessToken(verifier, redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getAccessToken';
-    const cachedData = await redisClient.get(cacheToken);
-    if (cachedData) {
-        const oauth_token = cachedData.oauth_token;
-        const oauth_token_secret = decrypt(cachedData.encrypted_oauth_token_secret);
-        return { oauth_token, oauth_token_secret };
-    }
-    const requestTokenData = await getRequestToken();
+async function getAccessTokenWithoutCache(verifier, requestTokenData) {
+    console.log('getAccessTokenWithoutCache requestTokenData:', requestTokenData);
     if (!verifier) {
         throw new Error('Verifier is missing');
     }
-    console.log('Requesting new access token');
     const requestData = {
-        url: `${baseUrl}/oauth/access_token`,
+        url: `${etradeBaseUrl}/oauth/access_token`,
         method: 'POST',
         data: { oauth_verifier: verifier },
     };
@@ -106,25 +98,28 @@ async function getAccessToken(verifier, redisClient = new RedisClientHandler()) 
         throw new Error('Failed to get access token');
     }
 
-    try {
-        const accessToken = responseData.get('oauth_token');
-        const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
+    const accessToken = responseData.get('oauth_token');
+    const encryptedAccessTokenSecret = encrypt(responseData.get('oauth_token_secret'));
 
-        const data = {
-            'oauth_token': accessToken,
-            'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
-        };
+    const data = {
+        'oauth_token': accessToken,
+        'encrypted_oauth_token_secret': encryptedAccessTokenSecret,
+    };
 
-        redisClient.set(cacheToken, data, 86400);
-        return data;
-    } catch (error) {
-        console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
-        throw error;
-    }
+    return data;
 }
 
-async function getAccessTokenCache(redisClient = new RedisClientHandler()) {
-    const cacheToken = 'oauth:getAccessToken';
+// Export the function with caching
+const getAccessToken = (
+    verifier,
+    requestTokenData,
+    keyGenerator,
+    ttl,
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getAccessTokenWithoutCache)(verifier, requestTokenData);
+
+async function getDecryptedAccessToken(accessTokenKey, redisClient) {
+    const cacheToken = accessTokenKey;
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {
         throw new Error('OAuth tokens are not available or expired. Please authenticate first.');
@@ -133,14 +128,13 @@ async function getAccessTokenCache(redisClient = new RedisClientHandler()) {
     return token;
 }
 
-
 export {
     getRequestToken,
+    getRequestTokenWithoutCache,
     getAccessToken,
     oauth,
     consumerKey,
-    baseUrl,
     encrypt,
     decrypt,
-    getAccessTokenCache
+    getDecryptedAccessToken,
 };

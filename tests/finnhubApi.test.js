@@ -1,9 +1,8 @@
 import { getCompanyData } from '../src/routes/finnhubApi';
 import { DefaultApi, ApiClient } from 'finnhub';
-import RedisClientHandler from '../src/services/redis';
+import { finnhubApiKeyGenerator, finnhubApiTtl } from '../src/services/utils';
 
 jest.mock('finnhub');
-jest.mock('../src/services/redis');
 
 describe('Finnhub Service', () => {
     let redisClient;
@@ -15,8 +14,8 @@ describe('Finnhub Service', () => {
         redisClient = {
             get: jest.fn(),
             set: jest.fn(),
+            quit: jest.fn(),
         };
-        RedisClientHandler.mockImplementation(() => redisClient);
 
         // Mock Finnhub client
         finnhubClient = {
@@ -34,19 +33,19 @@ describe('Finnhub Service', () => {
     });
 
     it('should return cached data if available', async () => {
-        const symbol = 'AAPL';
+        const ticker = 'AAPL';
         const cachedData = { name: 'Apple Inc.' };
 
         redisClient.get.mockResolvedValue(cachedData);
 
-        const result = await getCompanyData(symbol);
+        const result = await getCompanyData(ticker, finnhubApiKeyGenerator, finnhubApiTtl, redisClient);
 
-        expect(redisClient.get).toHaveBeenCalledWith(`finnhub:getCompanyData:${symbol}`);
+        expect(redisClient.get).toHaveBeenCalledWith(finnhubApiKeyGenerator(ticker));
         expect(result).toEqual(cachedData);
     });
 
     it('should fetch data from Finnhub API and cache it if not in cache', async () => {
-        const symbol = 'AAPL';
+        const ticker = 'AAPL';
         const apiData = { name: 'Apple Inc.' };
 
         redisClient.get.mockResolvedValue(null);
@@ -58,16 +57,16 @@ describe('Finnhub Service', () => {
         process.env.FINNHUB_API_KEY = 'test_api_key';
         apiClientInstance.authentications['api_key'].apiKey = process.env.FINNHUB_API_KEY;
 
-        const result = await getCompanyData(symbol);
+        const result = await getCompanyData(ticker, finnhubApiKeyGenerator, finnhubApiTtl, redisClient);
 
-        expect(redisClient.get).toHaveBeenCalledWith(`finnhub:getCompanyData:${symbol}`);
-        expect(finnhubClient.companyProfile2).toHaveBeenCalledWith({ symbol }, expect.any(Function));
-        expect(redisClient.set).toHaveBeenCalledWith(`finnhub:getCompanyData:${symbol}`, apiData, 3600);
+        expect(redisClient.get).toHaveBeenCalledWith(finnhubApiKeyGenerator(ticker));
+        expect(finnhubClient.companyProfile2).toHaveBeenCalledWith({ symbol: ticker }, expect.any(Function));
+        expect(redisClient.set).toHaveBeenCalledWith(finnhubApiKeyGenerator(ticker), apiData, finnhubApiTtl);
         expect(result).toEqual(apiData);
     });
 
     it('should throw an error if Finnhub API call fails', async () => {
-        const symbol = 'AAPL';
+        const ticker = 'AAPL';
         const error = new Error('API call failed');
 
         redisClient.get.mockResolvedValue(null);
@@ -75,9 +74,9 @@ describe('Finnhub Service', () => {
             callback(error);
         });
 
-        await expect(getCompanyData(symbol)).rejects.toThrow(error);
+        await expect(getCompanyData(ticker, finnhubApiKeyGenerator, finnhubApiTtl, redisClient)).rejects.toThrow(error);
 
-        expect(redisClient.get).toHaveBeenCalledWith(`finnhub:getCompanyData:${symbol}`);
-        expect(finnhubClient.companyProfile2).toHaveBeenCalledWith({ symbol }, expect.any(Function));
+        expect(redisClient.get).toHaveBeenCalledWith(finnhubApiKeyGenerator(ticker));
+        expect(finnhubClient.companyProfile2).toHaveBeenCalledWith({ symbol: ticker }, expect.any(Function));
     });
 });

@@ -1,14 +1,14 @@
 import axios from 'axios';
-import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, getAccessTokenCache } from '../services/oauth.js';
+import { oauth } from '../services/oauth.js';
+import withCache from '../services/redis.js';
+import { etradeBaseUrl } from '../services/utils.js';
 
 
 async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret) {
     const requestData = {
-        url: `${baseUrl}/v1/accounts/${accountIdKey}/portfolio`,
+        url: `${etradeBaseUrl}/v1/accounts/${accountIdKey}/portfolio`,
         method: 'GET',
     };
-
     const token = { key: accessToken, secret: accessTokenSecret };
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
 
@@ -16,13 +16,13 @@ async function getAccountPortfolio(accountIdKey, accessToken, accessTokenSecret)
         const response = await axios.get(requestData.url, { headers });
         return response.data;
     } catch (error) {
-        throw new Error('Error retrieving portfolio data.', error);
-    }
+        throw new Error('Error fetching account portfolio.', error);
+    };
+
 }
 
-async function getPortfolioData() {
-    const token = await getAccessTokenCache();
-    const accountList = await getAccountList();
+const getPortfolioDataWithoutCache = async function (accountList, token) {
+
     if (!accountList) {
         throw new Error('No accounts found.');
     }
@@ -40,9 +40,17 @@ async function getPortfolioData() {
 
         return accountPortfolios;
     } catch (error) {
-        throw new Error('Error fetching portfolio data.', error);
+        throw error;
     }
-}
+};
+
+const getPortfolioData = (
+    accountList,
+    token,
+    keyGenerator,
+    ttl,
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getPortfolioDataWithoutCache)(accountList, token);
 
 async function flattenPortfolioData(portfolios) {
     try {

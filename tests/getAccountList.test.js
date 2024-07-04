@@ -1,32 +1,48 @@
 import { getAccountList } from '../src/services/getAccountList';
-import { encrypt, baseUrl } from '../src/services/oauth';
-import { getAccessTokenCache } from '../src/services/oauth';
+import { oauth } from '../src/services/oauth';
+import { getAccountListKeyGenerator, getAccountListTtl, etradeBaseUrl } from '../src/services/utils';
 
 import axios from 'axios';
 
 jest.mock('axios');
-jest.mock('../src/services/redis');
-jest.mock('../src/services/oauth');
+jest.mock('../src/services/oauth', () => ({
+    oauth: {
+        toHeader: jest.fn(),
+        authorize: jest.fn(),
+    },
+    getDecryptedAccessToken: jest.fn(),
+}));
 
 describe('getAccountList', () => {
     let redisClient;
-    const calledWithUrl = `${baseUrl}/v1/accounts/list`;
-    const calledWithHeaders = { 'headers': undefined };
+    let calledWithUrl;
+    let calledWithHeaders;
+    let mockHeaders;
+    let token;
 
-    beforeAll(() => {
-        getAccessTokenCache.mockResolvedValue({
-            key: 'cached_token',
-            secret: 'cached_secret'
-        });
+    beforeEach(() => {
+        calledWithUrl = `${etradeBaseUrl}/v1/accounts/list`;
+        calledWithHeaders = {
+            Authorization: 'OAuth oauth_token="cached_token", oauth_token_secret="cached_secret"',
+        };
         redisClient = {
             get: jest.fn(),
             set: jest.fn(),
+            quit: jest.fn(),
         };
-        const cachedData = {
-            oauth_token: 'cached_token',
-            encrypted_oauth_token_secret: encrypt('cached_secret')
+
+        token = {
+            key: 'cached_token',
+            secret: 'cached_secret'
         };
-        redisClient.get.mockResolvedValue(cachedData);
+
+        oauth.toHeader.mockReturnValue(calledWithHeaders);
+        mockHeaders = oauth.toHeader(oauth.authorize({ url: calledWithUrl, method: 'GET' }, { key: 'cached_token', secret: 'cached_secret' }));
+
+        oauth.authorize.mockReturnValue({
+            oauth_token: 'oauth_token',
+            oauth_token_secret: 'oauth_token_secret',
+        });
     });
 
     afterEach(() => {
@@ -52,17 +68,17 @@ describe('getAccountList', () => {
 
         axios.get.mockResolvedValue(mockResponse);
 
-        const result = await getAccountList();
+        const result = await getAccountList(token, getAccountListKeyGenerator, getAccountListTtl, redisClient);
 
         expect(result).toEqual(mockResponse.data.AccountListResponse.Accounts.Account);
-        expect(axios.get).toHaveBeenCalledWith(calledWithUrl, calledWithHeaders);
+        expect(axios.get).toHaveBeenCalledWith(calledWithUrl, { headers: mockHeaders });
     });
 
     it('should throw an error when API call fails', async () => {
         const mockError = new Error('Error fetching account list.');
         axios.get.mockRejectedValue(mockError);
 
-        await expect(getAccountList()).rejects.toThrow(mockError);
-        expect(axios.get).toHaveBeenCalledWith(calledWithUrl, calledWithHeaders);
+        await expect(getAccountList(token, getAccountListKeyGenerator, getAccountListTtl, redisClient)).rejects.toThrow(mockError);
+        expect(axios.get).toHaveBeenCalledWith(calledWithUrl, { headers: mockHeaders });
     });
 });
