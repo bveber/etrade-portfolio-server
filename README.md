@@ -115,7 +115,10 @@ This project is licensed under the MIT License.
 
 ## TODO
 - Add ability to drill down into stocks
-    - Get price history
+    - Get price history (yf chart API)
     - Get news
     - Single page to display individual stock data
+    - Cache logos
+    - Custom tagging to map investment strategies
 - Get overall performace over time (compared to indices)
+- Improve logging
