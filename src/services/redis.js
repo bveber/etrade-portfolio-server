@@ -14,7 +14,6 @@ export class RedisClientHandler {
 
         this.client.on('error', (err) => console.error('Redis Client Error', err));
 
-        // Connect to Redis
         this.connect();
 
     }
@@ -23,7 +22,6 @@ export class RedisClientHandler {
         try {
             await this.client.connect();
         } catch (err) {
-            // console.error('Error connecting to Redis:', err);
             throw err;
         }
     }
@@ -40,7 +38,6 @@ export class RedisClientHandler {
                 return null;
             }
         } catch (err) {
-            // console.error('Error getting value from Redis:', err);
             throw err;
         }
     }
@@ -51,7 +48,6 @@ export class RedisClientHandler {
                 EX: ttl,
             });
         } catch (err) {
-            // console.error('Error setting value in Redis:', err);
             throw err;
         }
     }
@@ -60,7 +56,6 @@ export class RedisClientHandler {
         try {
             await this.client.del(key);
         } catch (err) {
-            // console.error('Error clearing key in Redis:', err);
             throw err;
         }
     }
@@ -72,7 +67,6 @@ export class RedisClientHandler {
         try {
             await this.client.flushDb();
         } catch (err) {
-            // console.error('Error clearing all keys in Redis:');
             throw err;
         }
     }
@@ -81,17 +75,16 @@ export class RedisClientHandler {
         try {
             await this.client.quit();
         } catch (err) {
-            // console.error('Error closing connection to Redis:', err);
             throw err;
         }
     }
 
 }
 
-// const withCache = (fn, { keyGenerator, ttl, redisClient }) => async (...args) => {
 const withCache = (keyGenerator, ttl=86400, redisClient=new RedisClientHandler()) => (fn) => async (...args) => {
     try {
-        const cacheKey = keyGenerator(...args);
+        const [firstArg] = args;
+        const cacheKey = keyGenerator(firstArg);
         const cachedValue = await redisClient.get(cacheKey);
         if (cachedValue) {
             return cachedValue;

@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { getAccountList } from '../services/getAccountList.js';
-import { oauth, baseUrl, getDecryptedAccessToken } from '../services/oauth.js';
+import { oauth } from '../services/oauth.js';
+import { etradeBaseUrl } from '../services/utils.js';
+import withCache from '../services/redis.js';
 
-async function getAccountTransactions(accountIdKey) {
-    const token = await getDecryptedAccessToken();
+async function getAccountTransactions(accountIdKey, token) {
     const requestData = {
-        url: `${baseUrl}/v1/accounts/${accountIdKey}/transactions?count=50`,
+        url: `${etradeBaseUrl}/v1/accounts/${accountIdKey}/transactions?count=50`,
         method: 'GET',
     };
 
@@ -20,17 +20,14 @@ async function getAccountTransactions(accountIdKey) {
     }
 }
 
-async function getTransactionsData() {
-    const accountList = await getAccountList();
-    const accounts = accountList;
-
-    if (!accounts) {
+async function getTransactionsDataWithoutCache(accountList, token) {
+    if (!accountList) {
         throw new Error('No accounts found.');
     }
     try {
         const accountTransactions = await Promise.all(
-            accounts.map(async (account) => {
-                const transactions = await getAccountTransactions(account.accountIdKey);
+            accountList.map(async (account) => {
+                const transactions = await getAccountTransactions(account.accountIdKey, token);
                 return {
                     accountId: account.accountIdKey,
                     accountName: account.accountName,
@@ -44,6 +41,16 @@ async function getTransactionsData() {
         throw new Error('Error fetching transactions data.', error);
     }
 }
+
+const getTransactionsData = (
+    accountList,
+    token,
+    transactionsKeyGenerator,
+    transactionsTtl,
+    redisClient
+) => withCache(
+    transactionsKeyGenerator, transactionsTtl, redisClient
+)(getTransactionsDataWithoutCache)(accountList, token);
 
 export {
     getTransactionsData,

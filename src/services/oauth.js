@@ -1,15 +1,15 @@
 import axios from 'axios';
 import OAuth from 'oauth-1.0a';
 import crypto from 'crypto';
-import withCache, { RedisClientHandler } from './redis.js';
+import withCache from './redis.js';
 import { config } from 'dotenv';
+import { etradeBaseUrl } from './utils.js';
 
 config();
 
 const encryptionKey = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // Must be 32 bytes for AES-256
 const consumerKey = process.env.ETRADE_CONSUMER_KEY;
 const consumerSecret = process.env.ETRADE_CONSUMER_SECRET;
-const baseUrl = 'https://api.etrade.com';
 
 const oauth = OAuth({
     consumer: { key: consumerKey, secret: consumerSecret },
@@ -43,7 +43,7 @@ function decrypt(text) {
 // Function to get request token
 async function getRequestTokenWithoutCache() {
     const requestData = {
-        url: `${baseUrl}/oauth/request_token`,
+        url: `${etradeBaseUrl}/oauth/request_token`,
         method: 'POST',
         data: { oauth_callback: 'oob' },
     };
@@ -75,16 +75,16 @@ const getRequestToken = (
     keyGenerator,
     ttl,
     redisClient
-) => withCache(keyGenerator, ttl, redisClient)(getRequestTokenWithoutCache);
+) => withCache(keyGenerator, ttl, redisClient)(getRequestTokenWithoutCache)();
 
 // Function to get access token
-async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClientHandler()) {
-    const requestTokenData = await getRequestToken(() => 'oauth:getRequestToken', 250, redisClient)();
+async function getAccessTokenWithoutCache(verifier, requestTokenData) {
+    console.log('getAccessTokenWithoutCache requestTokenData:', requestTokenData);
     if (!verifier) {
         throw new Error('Verifier is missing');
     }
     const requestData = {
-        url: `${baseUrl}/oauth/access_token`,
+        url: `${etradeBaseUrl}/oauth/access_token`,
         method: 'POST',
         data: { oauth_verifier: verifier },
     };
@@ -113,12 +113,13 @@ async function getAccessTokenWithoutCache(verifier, redisClient = new RedisClien
 // Export the function with caching
 const getAccessToken = (
     verifier,
+    requestTokenData,
     keyGenerator,
     ttl,
     redisClient
-) => withCache(keyGenerator, ttl, redisClient)(getAccessTokenWithoutCache)(verifier, redisClient);
+) => withCache(keyGenerator, ttl, redisClient)(getAccessTokenWithoutCache)(verifier, requestTokenData);
 
-async function getDecryptedAccessToken(accessTokenKey ='oauth:getAccessToken', redisClient = new RedisClientHandler()) {
+async function getDecryptedAccessToken(accessTokenKey, redisClient) {
     const cacheToken = accessTokenKey;
     const cachedData = await redisClient.get(cacheToken);
     if (!cachedData) {
@@ -134,7 +135,6 @@ export {
     getAccessToken,
     oauth,
     consumerKey,
-    baseUrl,
     encrypt,
     decrypt,
     getDecryptedAccessToken,

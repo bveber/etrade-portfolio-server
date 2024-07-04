@@ -42,11 +42,8 @@ const get10kWithoutCache = async function (ticker) {
     return filings;
 };
 
-// Create a key generator function
-const keyGenerator = (ticker) => `edgar:${ticker}`;
-
 // Wrap the function with caching logic
-const get10k = withCache(keyGenerator)(get10kWithoutCache);
+const get10k = (ticker, keyGenerator, ttl, redisClient) => withCache(keyGenerator, ttl, redisClient)(get10kWithoutCache)(ticker);
 
 export {
     get10k,

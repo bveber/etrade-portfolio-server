@@ -1,27 +1,30 @@
 import axios from 'axios';
-import { oauth, baseUrl, getDecryptedAccessToken } from './oauth.js';
+import { oauth } from './oauth.js';
+import withCache from './redis.js';
+import { etradeBaseUrl } from './utils.js';
 
-async function getAccountList() {
-    const token = await getDecryptedAccessToken();
-    console.log('getAccountList token:', token);
+async function getAccountListWithoutCache(token) {
 
     const requestData = {
-        url: `${baseUrl}/v1/accounts/list`,
+        url: `${etradeBaseUrl}/v1/accounts/list`,
         method: 'GET',
     };
 
     const headers = oauth.toHeader(oauth.authorize(requestData, token));
-
     try {
-        console.log('getAccountList requestData:', requestData);
-        console.log('getAccountList headers:', headers);
         const response = await axios.get(requestData.url, { headers });
-        console.log('response:', response.data);
         return response.data.AccountListResponse.Accounts.Account;
     } catch (error) {
         throw new Error('Error fetching account list.', error);
     }
 }
+
+const getAccountList = (
+    token,
+    keyGenerator,
+    ttl,
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getAccountListWithoutCache)(token);
 
 export {
     getAccountList,

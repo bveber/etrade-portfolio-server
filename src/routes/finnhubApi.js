@@ -5,12 +5,12 @@ import { config } from 'dotenv';
 config();
 
 // get finnhub company data
-async function getCompanyDataWithoutCache(symbol, finnhubClient = new DefaultApi()) {
+async function getCompanyDataWithoutCache(ticker, finnhubClient = new DefaultApi()) {
     try {
         const api_key = ApiClient.instance.authentications['api_key'];
         api_key.apiKey = process.env.FINNHUB_API_KEY;
         const data = await new Promise((resolve, reject) => {
-            finnhubClient.companyProfile2({ symbol: symbol }, (error, data, ) => {
+            finnhubClient.companyProfile2({ symbol: ticker }, (error, data, ) => {
                 if (error) {
                     console.error('Error calling Finnhub API:', error);
                     reject(error);
@@ -21,16 +21,17 @@ async function getCompanyDataWithoutCache(symbol, finnhubClient = new DefaultApi
         });
         return data;
     } catch (error) {
-        // console.error('Error:', error);
         throw error;
     }
 }
 
-//keyGenerator function
-const keyGenerator = (symbol) => `finnhub:getCompanyData:${symbol}`;
-
 // Export the function with caching
-const getCompanyData = withCache(keyGenerator)(getCompanyDataWithoutCache);
+const getCompanyData = (
+    ticker,
+    keyGenerator,
+    ttl,
+    redisClient
+) => withCache(keyGenerator, ttl, redisClient)(getCompanyDataWithoutCache)(ticker);
 
 export {
     getCompanyData,
