@@ -55,7 +55,6 @@ async function getRequestTokenWithoutCache() {
     } catch (error) {
         throw error;
     }
-    // const response = await axios.post(requestData.url, {}, { headers });
     const responseData = new URLSearchParams(response.data);
     if (!responseData.has('oauth_token') || !responseData.has('oauth_token_secret')) {
         throw new Error('Request token response not properly formatted');

@@ -5,7 +5,6 @@ import { etradeBaseUrl } from '../services/utils.js';
 
 // Function to get account balance
 async function getAccountBalance(accountIdKey, institutionType = 'BROKERAGE', token) {
-    // const token = await getDecryptedAccessToken();
     const requestData = {
         url: `${etradeBaseUrl}/v1/accounts/${accountIdKey}/balance?instType=${institutionType}&realTimeNAV=true`,
         method: 'GET',

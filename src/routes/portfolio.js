@@ -41,7 +41,6 @@ const getPortfolioDataWithoutCache = async function (accountList, token) {
         return accountPortfolios;
     } catch (error) {
         throw error;
-        // throw new Error('Error fetching portfolio data.', error);
     }
 };
 
