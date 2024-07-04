@@ -9,7 +9,7 @@
 </head>
 <body>
     <canvas id="portfolioChart" width="400" height="200"></canvas>
-    <div id="chart-container">
+    <div id="aggregationKeyContainer">
         <label for="aggregationKey">Aggregate by:</label>
         <select id="aggregationKey">
             <option value="symbol">Stock Ticker</option>
@@ -30,12 +30,19 @@
             font-family: Arial, sans-serif;
         }
         #chart-container {
+            position: relative;
             width: 400px;
             height: 400px;
         }
         canvas {
             width: 100% !important;
             height: 100% !important;
+        }
+        #aggregationKeyContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
         }
     </style>
     <script>
