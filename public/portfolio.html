@@ -164,12 +164,13 @@
                                     const label = tooltipModel.dataPoints[0].label;
                                     const value = tooltipModel.dataPoints[0].formattedValue;
                                     const tickers = aggregatedData[label].tickers.join(', ');
+                                    const percentage = ((aggregatedData[label].marketValue / marketValue.reduce((a, b) => a + b, 0)) * 100).toFixed(2);
                                     const logos = aggregatedData[label].logos.map(logo => `<img src="${logo}" alt="${label} logo" style="width:20px;height:20px;margin-right:5px;">`).join(' ');
 
                                     const innerHtml = `
                                         <div>
                                             <strong>${label}</strong><br>
-                                            ${value}<br>
+                                            ${value} (${percentage})<br>
                                             Tickers: ${tickers}<br>
                                             ${logos}
                                         </div>

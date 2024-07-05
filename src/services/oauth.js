@@ -78,7 +78,6 @@ const getRequestToken = (
 
 // Function to get access token
 async function getAccessTokenWithoutCache(verifier, requestTokenData) {
-    console.log('getAccessTokenWithoutCache requestTokenData:', requestTokenData);
     if (!verifier) {
         throw new Error('Verifier is missing');
     }

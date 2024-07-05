@@ -1,5 +1,6 @@
-import { getPortfolioData, flattenPortfolioData } from '../src/routes/portfolio';
+import { getPortfolioData, flattenPortfolioData, enrichPortfolioData } from '../src/routes/portfolio';
 import { oauth } from '../src/services/oauth';
+import { getStock } from '../src/routes/stock';
 import { getPortfolioDataKeyGenerator, getPortfolioDataTtl } from '../src/services/utils';
 import axios from 'axios';
 
@@ -11,6 +12,9 @@ jest.mock('../src/services/oauth', () => ({
         authorize: jest.fn(),
     },
     getDecryptedAccessToken: jest.fn(),
+}));
+jest.mock('../src/routes/stock', () => ({
+    getStock: jest.fn(),
 }));
 
 describe('Portfolio Service', () => {
@@ -327,6 +331,117 @@ describe('Portfolio Service', () => {
                     price: 100,
                     marketValue: 1000,
                 },
+            ]);
+        });
+    });
+
+    describe('enrichPortfolioData', () => {
+        it('should handle error during enriching portfolio data', async () => {
+            const flattenedPortfolioData = [
+                {
+                    accountIds: ['123'],
+                    accountNames: ['Test Account'],
+                    symbol: 'AAPL',
+                    quantity: 10,
+                    price: 150,
+                    marketValue: 1500
+                }
+            ];
+
+            getStock.mockRejectedValue(new Error('Error fetching stock data.'));
+
+            await expect(enrichPortfolioData(flattenedPortfolioData, redisClient)).rejects.toThrow('Error enriching portfolio data.');
+        });
+
+        it('should return enriched portfolio data', async () => {
+            const flattenedPortfolioData = [
+                {
+                    accountIds: ['123'],
+                    accountNames: ['Test Account'],
+                    symbol: 'AAPL',
+                    quantity: 10,
+                    price: 150,
+                    marketValue: 1500
+                }
+            ];
+
+            const stockData = {
+                latestPrice: 150,
+                marketCap: 2000000,
+            };
+
+            getStock.mockResolvedValue(stockData);
+
+            const result = await enrichPortfolioData(flattenedPortfolioData, redisClient);
+
+            expect(result).toEqual([
+                {
+                    accountIds: ['123'],
+                    accountNames: ['Test Account'],
+                    symbol: 'AAPL',
+                    quantity: 10,
+                    price: 150,
+                    marketValue: 1500,
+                    stockData,
+                }
+            ]);
+        });
+
+        it('should return enriched portfolio data for multiple symbols', async () => {
+            const flattenedPortfolioData = [
+                {
+                    accountIds: ['123'],
+                    accountNames: ['Test Account'],
+                    symbol: 'AAPL',
+                    quantity: 10,
+                    price: 150,
+                    marketValue: 1500
+                },
+                {
+                    accountIds: ['456'],
+                    accountNames: ['Test Account 2'],
+                    symbol: 'GOOGL',
+                    quantity: 5,
+                    price: 400,
+                    marketValue: 2000
+                }
+            ];
+
+            const stockDataAAPL = {
+                latestPrice: 150,
+                marketCap: 2000000,
+            };
+
+            const stockDataGOOGL = {
+                latestPrice: 400,
+                marketCap: 5000000,
+            };
+
+            getStock
+                .mockResolvedValueOnce(stockDataAAPL)
+                .mockResolvedValueOnce(stockDataGOOGL);
+
+            const result = await enrichPortfolioData(flattenedPortfolioData, redisClient);
+
+            expect(result).toEqual([
+                {
+                    accountIds: ['123'],
+                    accountNames: ['Test Account'],
+                    symbol: 'AAPL',
+                    quantity: 10,
+                    price: 150,
+                    marketValue: 1500,
+                    stockData: stockDataAAPL,
+                },
+                {
+                    accountIds: ['456'],
+                    accountNames: ['Test Account 2'],
+                    symbol: 'GOOGL',
+                    quantity: 5,
+                    price: 400,
+                    marketValue: 2000,
+                    stockData: stockDataGOOGL,
+                }
             ]);
         });
     });

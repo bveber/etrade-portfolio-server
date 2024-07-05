@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { oauth } from '../services/oauth.js';
-import withCache, { RedisClientHandler } from '../services/redis.js';
+import withCache from '../services/redis.js';
 import { etradeBaseUrl } from '../services/utils.js';
 import { getStock } from './stock.js';
 
@@ -85,11 +85,10 @@ async function flattenPortfolioData(portfolios) {
     }
 }
 
-async function enrichPortfolioData(flattenedPortfolioData, redisClient= new RedisClientHandler()) {
+async function enrichPortfolioData(flattenedPortfolioData, redisClient) {
     try {
         const enrichedPortfolioData = await Promise.all(
             flattenedPortfolioData.map(async (position) => {
-                console.log('position:', position);
                 const stockData = await getStock(position.symbol, redisClient);
                 return {
                     ...position,

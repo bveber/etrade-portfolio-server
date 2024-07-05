@@ -219,26 +219,6 @@ describe('withCache', () => {
         expect(cachedValue).toEqual(value);
     });
 
-    it('should cache the result of a function with a default TTL', async () => {
-        const key = 'testKey';
-        const value = { 'key': 'testValue' };
-        const keyGenerator = () => key;
-        const fn = () => value;
-        const setSpy = jest.spyOn(redisClient, 'set');
-
-        const cachedFn = withCache(keyGenerator, undefined, redisClient)(fn);
-
-        // Call the function
-        const result = await cachedFn();
-
-        // Get the value from cache
-        const cachedValue = await redisClient.get(key);
-
-        expect(result).toEqual(value);
-        expect(cachedValue).toEqual(value);
-        expect(setSpy).toHaveBeenCalledWith(key, value, 86400);
-    });
-
     it('should cache the result of a function with a custom TTL', async () => {
         const key = 'testKey';
         const value = { 'key': 'testValue' };

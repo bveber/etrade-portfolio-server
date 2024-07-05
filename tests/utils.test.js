@@ -1,4 +1,56 @@
-import { RateLimiter } from '../src/services/utils';
+import { RateLimiter, getTokenAndAccountList } from '../src/services/utils';
+import { getDecryptedAccessToken } from '../src/services/oauth';
+import { getAccountList } from '../src/services/getAccountList';
+
+jest.mock('axios');
+jest.mock('../src/services/oauth', () => ({
+    getDecryptedAccessToken: jest.fn(),
+}));
+jest.mock('../src/services/getAccountList', () => ({
+    getAccountList: jest.fn(),
+}));
+
+describe('getTokenAndAccountList', () => {
+    let redisClient;
+    let token;
+    let accountList;
+
+    beforeEach(() => {
+        redisClient = {
+            get: jest.fn(),
+            set: jest.fn(),
+            quit: jest.fn(),
+        };
+        token = 'token';
+        accountList = ['account1', 'account2'];
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should return data', async () => {
+        getDecryptedAccessToken.mockReturnValue(token);
+        getAccountList.mockResolvedValue(accountList);
+
+        const result = await getTokenAndAccountList(redisClient);
+
+        expect(result).toEqual({ token, accountList });
+    });
+
+    it('should handle error when getting token', async () => {
+        getDecryptedAccessToken.mockRejectedValue(new Error('Failed to get token'));
+
+        await expect(getTokenAndAccountList(redisClient)).rejects.toThrow('Failed to get token');
+    });
+
+    it('should handle error when getting account list', async () => {
+        getDecryptedAccessToken.mockReturnValue(token);
+        getAccountList.mockRejectedValue(new Error('Failed to get account list'));
+
+        await expect(getTokenAndAccountList(redisClient)).rejects.toThrow('Failed to get account list');
+    });
+});
 
 describe('RateLimiter', () => {
     let rateLimiter;
