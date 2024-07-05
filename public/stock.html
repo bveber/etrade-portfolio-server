@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        .info-container {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .info-box {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            width: 80%;
+            background-color: #e6f7ff;
+        }
+        .info-box img {
+            max-width: 100px;
+            max-height: 100px;
+        }
+        .info-box h2, .info-box p {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-container">
+        <div class="info-box" id="basic-info">
+            <h2>Basic Information</h2>
+            <p id="ticker">Ticker: </p>
+            <p id="name">Name: </p>
+            <img id="logo" src="" alt="Company Logo">
+        </div>
+
+        <div class="info-box" id="market-info">
+            <h2>Market Information</h2>
+            <p id="industry">Industry: </p>
+            <p id="sector">Sector: </p>
+            <p id="price">Price: </p>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h2>Stock Performance</h2>
+        <canvas id="chart" width="400" height="200"></canvas>
+    </div>
+
+    <div class="info-box" id="filings">
+        <h2>10-K Filings</h2>
+        <div id="filings-content"></div>
+    </div>
+
+    <div class="info-box" id="news">
+        <h2>Company News</h2>
+        <div id="news-content"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const ticker = new URLSearchParams(window.location.search).get('ticker');
+            let chartInstance;
+
+            if (!ticker) {
+                alert('No ticker specified');
+                return;
+            }
+
+            try {
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+                const stockData = await fetch(`/stock?ticker=${ticker}`).then(res => res.json());
+                const chartData = await fetch(`/chart?ticker=${ticker}&period1='2000-01-01'&interval=1mo`).then(res => res.json());
+                const comparisonChartData = await fetch(`/chart?ticker=^GSPC&period1='2000-01-01'&interval=1mo`).then(res => res.json());
+                const newsData = await fetch(`/news?ticker=${ticker}&newsCount=20`).then(res => res.json());
+
+                document.getElementById('ticker').innerText = `Ticker: ${ticker}`;
+                document.getElementById('name').innerText = `Name: ${stockData.finnhub.name}`;
+                document.getElementById('logo').src = stockData.finnhub.logo || '';
+
+                document.getElementById('industry').innerText = `Industry: ${stockData.yahooFinance.assetProfile.industry || 'N/A'}`;
+                document.getElementById('sector').innerText = `Sector: ${stockData.yahooFinance.assetProfile.sector || 'N/A'}`;
+                document.getElementById('price').innerText = `Price: $${stockData.yahooFinance.financialData.currentPrice || 'N/A'}`;
+
+                const ctx = document.getElementById('chart').getContext('2d');
+                const labels = chartData.quotes.map(quote => quote.date);
+                const data = chartData.quotes.map(quote => quote.close)
+                const comparisonData = comparisonChartData.quotes.map(quote => quote.close);
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: ticker,
+                            data: data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y1',
+                            fill: false
+                        },
+                        {
+                            label: 'S&P 500',
+                            data: comparisonData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y2',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            y1: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: ticker
+                                }
+                            },
+                            y2: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'S&P 500'
+                                },
+                                grid: {
+                                    drawOnChartArea: false // Only want the grid lines for one axis
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Function to normalize data
+                function normalizeData(data) {
+                    const firstValue = data[0];
+                    return data.map(value => (value / firstValue) * 100);
+                }
+
+                const filingsContent = stockData.filings.map(
+                    filing => `<p><a href="${filing.xbrl_url}" target="_blank">${filing.title}</a></p>`
+                ).join('');
+                document.getElementById('filings-content').innerHTML = filingsContent;
+
+                const newsContent = newsData.map(
+                    news => `<p><a href="${news.link}" target="_blank">${news.title}: ${news.publisher}: ${news.providerPublishTime}</a></p>`
+                ).join('');
+                document.getElementById('news-content').innerHTML = newsContent;
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                alert('Failed to load stock information');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -81,7 +81,7 @@ export class RedisClientHandler {
 
 }
 
-const withCache = (keyGenerator, ttl=86400, redisClient=new RedisClientHandler()) => (fn) => async (...args) => {
+const withCache = (keyGenerator, ttl, redisClient) => (fn) => async (...args) => {
     try {
         const [firstArg] = args;
         const cacheKey = keyGenerator(firstArg);

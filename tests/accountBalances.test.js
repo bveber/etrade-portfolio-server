@@ -129,4 +129,27 @@ describe('Account Balances Service', () => {
             ]
         );
     });
+
+    it('should get account balances with default institution type', async () => {
+        const accountList = [
+            {
+                accountIdKey: '123',
+                accountId: '456',
+                accountName: 'Test Account',
+            }
+        ];
+        axios.get.mockResolvedValue({ data: 'balance data' });
+
+        const result = await getAccountBalances(accountList, token, getAccountBalancesKeyGenerator, getAccountBalancesTtl, redisClient);
+
+        expect(result).toEqual(
+            [
+                {
+                    accountId: '456',
+                    accountName: 'Test Account',
+                    balance: 'balance data'
+                }
+            ]
+        );
+    });
 });

@@ -10,7 +10,7 @@ import { getPortfolioData, flattenPortfolioData, enrichPortfolioData } from './r
 import { getTransactionsData } from './routes/transactions.js';
 import { getAccountBalances } from './routes/accountBalances.js';
 import { get10k } from './routes/edgar.js';
-import { getStockData } from './routes/yahooFinance.js';
+import { getStockData, getChartData, getNewsData } from './routes/yahooFinance.js';
 import { getCompanyData } from './routes/finnhubApi.js';
 import { getStock } from './routes/stock.js';
 import { RedisClientHandler } from './services/redis.js';
@@ -60,7 +60,7 @@ app.get('/accountBalancesPage', (req, res) => {
 app.get('/accountBalances', async (req, res) => {
     try {
         const redisClient = new RedisClientHandler();
-        const { token, accountList } = utils.getTokenAndAccountList(redisClient);
+        const { token, accountList } = await utils.getTokenAndAccountList(redisClient);
         const data = await getAccountBalances(accountList, token, utils.getAccountBalancesKeyGenerator, utils.getAccountBalancesTtl, redisClient);
         res.json(data);
     } catch (error) {
@@ -72,7 +72,7 @@ app.get('/accountBalances', async (req, res) => {
 app.get('/portfolio', async (req, res) => {
     try {
         const redisClient = new RedisClientHandler();
-        const { token, accountList } = utils.getTokenAndAccountList(redisClient);
+        const { token, accountList } = await utils.getTokenAndAccountList(redisClient);
         const data = await getPortfolioData(accountList, token, utils.getPortfolioDataKeyGenerator, utils.getPortfolioDataTtl, redisClient);
         res.json(data);
     } catch (error) {
@@ -105,7 +105,7 @@ app.get('/enrichedPortfolio', async (req, res) => {
         const { token, accountList } = await utils.getTokenAndAccountList(redisClient);
         const portfolio = await getPortfolioData(accountList, token, utils.getPortfolioDataKeyGenerator, utils.getPortfolioDataTtl, redisClient);
         const flattenedPortfolioData = await flattenPortfolioData(portfolio);
-        const enrichedData = await enrichPortfolioData(flattenedPortfolioData);
+        const enrichedData = await enrichPortfolioData(flattenedPortfolioData, redisClient);
         res.json(enrichedData);
     } catch (error) {
         res.status(500).send(error.message);
@@ -153,6 +153,28 @@ app.get('/yahooFinance', async (req, res) => {
     }
 });
 
+// Endpoint to retrieve chart data
+app.get('/chart', async (req, res) => {
+    const { ticker, period1, interval } = req.query;
+    try {
+        const data = await getChartData(ticker, period1, interval);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Endpoint to retrieve news data
+app.get('/news', async (req, res) => {
+    const { ticker, newsCount } = req.query;
+    try {
+        const data = await getNewsData(ticker, newsCount);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // Endpoint to retrieve Finnhub data
 app.get('/finnhub', async (req, res) => {
     const { ticker } = req.query;
@@ -175,6 +197,10 @@ app.get('/stock', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});
+
+app.get('/stockPage', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'stock.html'));
 });
 
 app.listen(port, () => {

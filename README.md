@@ -115,7 +115,7 @@ This project is licensed under the MIT License.
 
 ## TODO
 - Add ability to drill down into stocks
-    - Get price history
-    - Get news
-    - Single page to display individual stock data
-- Get overall performace over time (compared to indices)
+    - Cache logos
+    - Custom tagging to map investment strategies
+- Get overall portfolio performace over time (compared to indices)
+- Improve logging
