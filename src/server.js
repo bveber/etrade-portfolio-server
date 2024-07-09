@@ -85,6 +85,11 @@ app.get('/portfolioPage', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'portfolio.html'));
 });
 
+// Serve the portfolioList.html page
+app.get('/portfolioList', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'portfolioList.html'));
+});
+
 // Endpoint to request portfolio data
 app.get('/portfolioFlattened', async (req, res) => {
     try {
