@@ -85,6 +85,11 @@ app.get('/portfolioPage', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'portfolio.html'));
 });
 
+// Serve the portfolioList.html page
+app.get('/portfolioList', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'portfolioList.html'));
+});
+
 // Endpoint to request portfolio data
 app.get('/portfolioFlattened', async (req, res) => {
     try {
@@ -202,6 +207,34 @@ app.get('/stock', async (req, res) => {
 app.get('/stockPage', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'stock.html'));
 });
+
+// Endpoint to set a value in Redis
+app.post('/set', async (req, res) => {
+    const { key, value, ttl } = req.query;
+    try {
+        const redisClient = new RedisClientHandler();
+        await redisClient.set(key, value, ttl);
+        res.send(`Value set for key: ${key}`);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+// TODO: Change this endpoint to accept a list of symbols and return a list of values
+// to protect from possible injection attacks
+
+// Endpoint to get a value from Redis
+app.get('/get', async (req, res) => {
+    const { key } = req.query;
+    try {
+        const redisClient = new RedisClientHandler();
+        const value = await redisClient.get(key);
+        res.json(value);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);

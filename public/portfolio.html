@@ -16,6 +16,7 @@
             <option value="yfIndustry">Yahoo Finance Industry</option>
             <option value="yfSector">Yahoo Finance Sector</option>
             <option value="finnhubIndustry">Finnhub Industry</option>
+            <option value="customTag1">Custom Tag #1</option>
         </select>
         <canvas id="portfolioChart" width="400" height="200"></canvas>
     </div>
@@ -90,6 +91,8 @@
                     value = stock.stockData?.yahooFinance?.assetProfile?.sector || 'unknown';
                 } else if (key == 'finnhubIndustry') {
                     value = stock.stockData?.finnhub?.finnhubIndustry || 'unknown';
+                } else if (key == 'customTag1') {
+                    value = stock.customTag1;
                 } else {
                     throw new Error(`Invalid aggregation key: ${key}`);
                 }
@@ -129,7 +132,7 @@
             const backgroundColors = data.map(stock => stringToColor(stock.symbol));
 
             chartInstance = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [
@@ -138,7 +141,8 @@
                             data: marketValue,
                             backgroundColor: backgroundColors,
                             borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            hoverOffset: 30,
                         },
                     ]
                 },
@@ -170,7 +174,7 @@
                                     const innerHtml = `
                                         <div>
                                             <strong>${label}</strong><br>
-                                            ${value} (${percentage})<br>
+                                            $${value} (${percentage}%)<br>
                                             Tickers: ${tickers}<br>
                                             ${logos}
                                         </div>
@@ -191,12 +195,13 @@
                             }
                         },
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'right'
                         },
                         title: {
                             display: true,
                             text: 'Asset Allocation'
-                        }
+                        },
                 }
             },
         });
@@ -204,6 +209,13 @@
 
         async function init() {
             const enrichedPortfolioData = await fetchEnrichedPortfolioData();
+            
+            for (const stock of enrichedPortfolioData) {
+                const response = await fetch(`/get?key=1:${stock.symbol}`);
+                tagValue = await response.text();
+                stock.customTag1 = tagValue;
+            };
+
             const aggregationKeyElement = document.getElementById('aggregationKey');
 
             aggregationKeyElement.addEventListener('change', () => {

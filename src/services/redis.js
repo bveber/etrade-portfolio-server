@@ -44,9 +44,13 @@ export class RedisClientHandler {
 
     async set(key, value, ttl = 86400) {
         try {
-            await this.client.set(key, JSON.stringify(value), {
-                EX: ttl,
-            });
+            if (ttl === 'undefined') {
+                await this.client.set(key, JSON.stringify(value));
+            } else {
+                await this.client.set(key, JSON.stringify(value), {
+                    EX: ttl,
+                });
+            }
         } catch (err) {
             throw err;
         }

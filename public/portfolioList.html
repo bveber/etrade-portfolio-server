@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio</title>
+    <style>
+        /* Reset CSS for consistent styling */
+        body, h1, table, th, td {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f8f8;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+
+        .error-message {
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading-message {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Portfolio</h1>
+    <div class="loading-message" id="loadingMessage">Loading...</div>
+    <div class="error-message" id="errorMessage" style="display: none;">Error fetching data. Please try again later.</div>
+    <table style="display: none;" id="portfolioTable">
+        <thead>
+            <tr>
+                <th>Ticker</th>
+                <th>Logo</th>
+                <th>Market Value</th>
+                <th>Price</th>
+                <th>Dividend</th>
+                <th>% Change</th>
+                <th>Industry</th>
+                <th>Sector</th>
+                <th>
+                    Custom Tag
+                    <input type="text" id="tagKeyInput" placeholder="Enter tag key" />
+                </th>
+            </tr>
+        </thead>
+        <tbody id="portfolioTableBody">
+            <!-- Rows will be dynamically populated here -->
+        </tbody>
+    </table>
+    <script>
+        async function fetchPortfolioData() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const portfolioTable = document.getElementById('portfolioTable');
+            const tableBody = document.getElementById('portfolioTableBody');
+
+            try {
+                const response = await fetch('/enrichedPortfolio');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const data = await response.json();
+                if (data.length === 0) {
+                    loadingMessage.textContent = 'No data available.';
+                } else {
+                    loadingMessage.style.display = 'none';
+                    portfolioTable.style.display = 'table';
+                    populateTable(data);
+                }
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+                loadingMessage.style.display = 'none';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function populateTable(data) {
+            const tableBody = document.getElementById('portfolioTableBody');
+            tableBody.innerHTML = ''; // Clear existing content
+
+            data.forEach(stock => {
+                const row = document.createElement('tr');
+
+                const marketValueInThousands = (stock.marketValue / 1000).toFixed(2) + 'K';
+                const dividendYield = stock.stockData?.yahooFinance?.summaryDetail?.dividendYield !== undefined ? 
+                    (stock.stockData.yahooFinance.summaryDetail.dividendYield * 100).toFixed(2) : 'N/A';
+                const fiftyTwoWeekChange = stock.stockData?.yahooFinance?.defaultKeyStatistics['52WeekChange'] !== undefined ?
+                    (stock.stockData.yahooFinance.defaultKeyStatistics['52WeekChange'] * 100).toFixed(2) : 'N/A';
+
+                row.innerHTML = `
+                    <td>${stock.symbol}</td>
+                    <td><img src="${stock.stockData.finnhub.logo}" alt="${stock.symbol} logo" width="50"></td>
+                    <td>$${marketValueInThousands}</td>
+                    <td>$${stock.price.toFixed(2)}</td>
+                    <td>${dividendYield}%</td>
+                    <td>${fiftyTwoWeekChange}%</td>
+                    <td>${stock.stockData?.yahooFinance?.assetProfile?.industry || 'N/A'}</td>
+                    <td>${stock.stockData?.yahooFinance?.assetProfile?.sector || 'N/A'}</td>
+                    <td><input type="text" class="tagValueInput" data-symbol="${stock.symbol}" placeholder="Enter tag value" /></td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+            addTagValueInputListeners();
+        }
+
+        function addTagValueInputListeners() {
+            const tagValueInputs = document.querySelectorAll('.tagValueInput');
+            tagValueInputs.forEach(input => {
+                input.addEventListener('change', async (event) => {
+                    const symbol = event.target.dataset.symbol;
+                    const tagValue = event.target.value;
+                    const tagKey = document.getElementById('tagKeyInput').value;
+
+                    if (tagKey) {
+                        try {
+                            await saveTagValue(symbol, tagKey, tagValue);
+                        } catch (error) {
+                            console.error('Error saving tag value:', error);
+                        }
+                    } else {
+                        alert('Please enter a tag key in the header.');
+                    }
+                });
+            });
+        }
+
+        async function saveTagValue(symbol, tagKey, tagValue) {
+            try {
+                const response = await fetch(`/set?key=${tagKey}:${symbol}&value=${tagValue}&ttl=undefined`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbol, tagKey, tagValue })
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error saving tag value:', error);
+                alert('Error saving tag value. Please try again.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchPortfolioData);
+    </script>
+</body>
+</html>
