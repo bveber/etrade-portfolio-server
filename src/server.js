@@ -220,6 +220,9 @@ app.post('/set', async (req, res) => {
     }
 });
 
+// TODO: Change this endpoint to accept a list of symbols and return a list of values
+// to protect from possible injection attacks
+
 // Endpoint to get a value from Redis
 app.get('/get', async (req, res) => {
     const { key } = req.query;
