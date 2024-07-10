@@ -132,7 +132,7 @@
             const backgroundColors = data.map(stock => stringToColor(stock.symbol));
 
             chartInstance = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [
@@ -141,7 +141,8 @@
                             data: marketValue,
                             backgroundColor: backgroundColors,
                             borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
+                            borderWidth: 1,
+                            hoverOffset: 30,
                         },
                     ]
                 },
@@ -194,12 +195,19 @@
                             }
                         },
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'right'
                         },
                         title: {
                             display: true,
                             text: 'Asset Allocation'
-                        }
+                        },
+                        elements: {
+                            arc: {
+                                borderWidth: 0,
+                                hoverBorderWidth: 0,
+                            },
+                        },
                 }
             },
         });
