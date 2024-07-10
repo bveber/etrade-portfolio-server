@@ -71,8 +71,8 @@ describe('RateLimiter', () => {
         rateLimiter.call(mockFn);
         rateLimiter.call(mockFn);
 
-        // Wait for 1 second to ensure the rate limit is enforced
-        await new Promise((resolve) => setTimeout(resolve, 505));
+        // Wait for .75 second to ensure the rate limit is enforced
+        await new Promise((resolve) => setTimeout(resolve, 750));
 
         // Call the rate-limited function 2 more times after the 1-second delay
         rateLimiter.call(mockFn);

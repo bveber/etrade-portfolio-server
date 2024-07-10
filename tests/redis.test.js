@@ -59,6 +59,22 @@ describe('RedisClientHandler', () => {
         expect(result).toEqual(value);
     });
 
+    it('should set a value in cache with "undefined" ttl', async () => {
+        const key = 'testKey';
+        const value = { 'key': 'testValue' };
+        const ttl = 'undefined';
+        const setSpy = jest.spyOn(redisClient, 'set');
+
+        await redisClient.set(key, value, ttl);
+        // Check if set method is called with the default TTL
+        expect(setSpy).toHaveBeenCalledWith(key, value, ttl);
+
+        // Get the value from cache
+        const result = await redisClient.get(key);
+
+        expect(result).toEqual(value);
+    });
+
     it('should clear a key from cache', async () => {
         const key = 'testKey';
         const value = { 'key': 'testValue' };

@@ -208,6 +208,31 @@ app.get('/stockPage', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'stock.html'));
 });
 
+// Endpoint to set a value in Redis
+app.post('/set', async (req, res) => {
+    const { key, value, ttl } = req.query;
+    try {
+        const redisClient = new RedisClientHandler();
+        await redisClient.set(key, value, ttl);
+        res.send(`Value set for key: ${key}`);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+// Endpoint to get a value from Redis
+app.get('/get', async (req, res) => {
+    const { key } = req.query;
+    try {
+        const redisClient = new RedisClientHandler();
+        const value = await redisClient.get(key);
+        res.json(value);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);
 });
