@@ -116,6 +116,6 @@ This project is licensed under the MIT License.
 ## TODO
 - Add ability to drill down into stocks
     - Cache logos
-    - Custom tagging to map investment strategies
 - Get overall portfolio performace over time (compared to indices)
 - Improve logging
+- Fix re-authentication logic
